@@ -83,6 +83,7 @@ public enum ManaCostShard {
 
     /** The cmc. */
     private final int cmc;
+    private final int lcmc;
 
     /** The cmpc. */
     private final float cmpc;
@@ -116,6 +117,7 @@ public enum ManaCostShard {
     ManaCostShard(final int value, final String sValue, final String imgKey) {
         this.shard = value;
         this.cmc = this.getCMC();
+        this.lcmc = this.getLikelyCMC();
         this.cmpc = this.getCmpCost();
         this.stringValue = "{" + sValue + "}";
         this.imageKey = imgKey;
@@ -126,6 +128,16 @@ public enum ManaCostShard {
     private int getCMC() {
         if (0 != (this.shard & ManaAtom.IS_X)) {
             return 0;
+        }
+        if (0 != (this.shard & ManaAtom.OR_2_GENERIC)) {
+            return 2;
+        }
+        return 1;
+    }
+
+    private int getLikelyCMC() {
+        if (0 != (this.shard & ManaAtom.IS_X)) {
+            return 2;
         }
         if (0 != (this.shard & ManaAtom.OR_2_GENERIC)) {
             return 2;
@@ -242,6 +254,10 @@ public enum ManaCostShard {
      */
     public int getCmc() {
         return this.cmc;
+    }
+
+    public int getLikelyCmc() {
+        return this.lcmc;
     }
 
     /**

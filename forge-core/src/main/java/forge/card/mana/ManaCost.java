@@ -140,6 +140,19 @@ public final class ManaCost implements Comparable<ManaCost>, Iterable<ManaCostSh
     }
 
     /**
+     * Gets the cMC.
+     *
+     * @return the cMC
+     */
+    public int getLCMC() {
+        int sum = 0;
+        for (final ManaCostShard s : this.shards) {
+            sum += s.getLikelyCmc();
+        }
+        return sum + this.genericCost;
+    }
+
+    /**
      * Gets the color profile.
      * 
      * @return the color profile

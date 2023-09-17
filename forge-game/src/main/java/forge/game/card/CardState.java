@@ -474,7 +474,7 @@ public class CardState extends GameObject implements IHasSVars {
             result.add(defenseRep);
 
             if (battleTypeRep == null) {
-                if(type.hasSubtype("Siege")) {
+                if (type.hasSubtype("Siege")) {
                     // battleTypeRep; // - Choose a player to protect it
                 }
             }
@@ -487,10 +487,10 @@ public class CardState extends GameObject implements IHasSVars {
             }
             result.add(sagaRep);
         }
-
         card.updateReplacementEffects(result, this);
         return result;
     }
+
     public boolean addReplacementEffect(final ReplacementEffect replacementEffect) {
         return replacementEffects.add(replacementEffect);
     }

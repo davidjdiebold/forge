@@ -74,7 +74,8 @@ public class StaticAbility extends CardTraitBase implements IIdentifiable, Clone
 
     @Override
     public int hashCode() {
-        return Objects.hash(StaticAbility.class, getId());
+        return id;
+        //return Objects.hash(StaticAbility.class, getId());
     }
 
     @Override

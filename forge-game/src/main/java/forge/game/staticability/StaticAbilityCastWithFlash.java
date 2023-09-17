@@ -11,8 +11,14 @@ public class StaticAbilityCastWithFlash {
 
     static String MODE = "CastWithFlash";
 
+<<<<<<< HEAD
     public static boolean anyWithFlashNeedsInfo(final SpellAbility sa, final Card card, final Player activator) {
         final Game game = activator.getGame();
+=======
+    public static boolean anyWithFlashNeedsTargeting(final SpellAbility sa, final Card card, final Player activator) {
+        return false;
+        /**final Game game = activator.getGame();
+>>>>>>> 6735f62822 (HACK Performance Optimization)
         final CardCollection allp = new CardCollection(game.getCardsIn(ZoneType.STATIC_ABILITIES_SOURCE_ZONES));
         allp.add(card);
         for (final Card ca : allp) {
@@ -25,7 +31,7 @@ public class StaticAbilityCastWithFlash {
                 }
             }
         }
-        return false;
+        return false;**/
     }
 
     public static boolean anyWithFlash(final SpellAbility sa, final Card card, final Player activator) {

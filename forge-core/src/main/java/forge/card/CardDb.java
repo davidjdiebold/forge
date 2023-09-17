@@ -883,7 +883,11 @@ public final class CardDb implements ICardDatabase, IDeckGenPool {
     }
 
     public PaperCard getUniqueByName(final String name) {
-        return uniqueCardsByName.get(getName(name));
+        PaperCard paperCard = uniqueCardsByName.get(getName(name));
+        if(paperCard==null) {
+            System.out.println("not found : " + name);
+        }
+        return paperCard;
     }
 
     public Collection<ICardFace> getAllFaces() {

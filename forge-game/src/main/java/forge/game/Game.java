@@ -17,6 +17,17 @@
  */
 package forge.game;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.commons.lang3.tuple.Pair;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.*;
@@ -50,15 +61,11 @@ import forge.util.Aggregates;
 import forge.util.MyRandom;
 import forge.util.Visitor;
 import forge.util.collect.FCollection;
-import org.apache.commons.lang3.tuple.Pair;
-
-import java.util.*;
 
 /**
  * Represents the state of a <i>single game</i>, a new instance is created for each game.
  */
 public class Game {
-
     private static int maxId = 0;
     private static int nextId() { return ++maxId; }
 
@@ -597,6 +604,15 @@ public class Game {
             cards.addAll(p.getColoredCardsInPlay(color));
         }
         return cards;
+    }
+
+    private AtomicBoolean _canceled = new AtomicBoolean(false);
+    public void cancel() {
+        _canceled.set(true);
+    }
+    public boolean isCanceled()
+    {
+        return _canceled.get();
     }
 
     private static class CardStateVisitor extends Visitor<Card> {

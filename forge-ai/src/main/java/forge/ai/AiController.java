@@ -22,6 +22,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.sun.org.apache.xalan.internal.xsltc.runtime.InternalRuntimeError;
 import forge.ai.ability.ChangeZoneAi;
 import forge.ai.ability.LearnAi;
 import forge.ai.simulation.SpellAbilityPicker;
@@ -1336,6 +1337,10 @@ public class AiController {
     }
 
     public List<SpellAbility> chooseSpellAbilityToPlay() {
+        if(game.isCanceled()) {
+            throw new RuntimeException("Game was canceled");
+        }
+
         // Reset cached predicted combat, as it may be stale. It will be
         // re-created if needed and used for any AI logic that needs it.
         predictedCombat = null;

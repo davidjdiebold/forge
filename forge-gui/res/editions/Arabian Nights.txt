@@ -27,6 +27,7 @@ ScryfallCode=ARN
 3 C Camel @Sandra Everingham
 60 R City in a Bottle @Drew Tucker
 71 U City of Brass @Mark Tedin
+171 U City of Ass @Mark Tedin
 23 C Cuombajj Witches @Kaja Foglio
 45 U Cyclone @Mark Tedin
 61 R Dancing Scimitar @Anson Maddocks

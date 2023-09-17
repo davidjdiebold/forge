@@ -367,6 +367,7 @@ public class GameFormat implements Comparable<GameFormat> {
             coreFormats.add("Oathbreaker.txt");
             coreFormats.add("Premodern.txt");
             coreFormats.add("Pauper.txt");
+            coreFormats.add("9394French.txt");
         }
         
         public Reader(File forgeFormats, File customFormats, boolean includeArchived) {
@@ -586,6 +587,10 @@ public class GameFormat implements Comparable<GameFormat> {
 
         public GameFormat getStandard() {
             return this.map.get("Standard");
+        }
+
+        public GameFormat get9394French() {
+            return this.map.get("9394French");
         }
 
         public GameFormat getExtended() {

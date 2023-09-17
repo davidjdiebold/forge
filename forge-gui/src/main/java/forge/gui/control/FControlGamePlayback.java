@@ -64,6 +64,8 @@ public class FControlGamePlayback extends IGameEventVisitor.Base<Void> {
 
     private PlaybackSpeed playbackSpeed = PlaybackSpeed.NORMAL;
 
+    private boolean fasterPlayback = true;
+
     private void pauseForEvent(final int delay) {
         try {
             Thread.sleep(playbackSpeed.applyModifier(delay));

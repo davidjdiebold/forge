@@ -125,12 +125,13 @@ public class Match {
             for (RegisteredPlayer p : players) {
                 if (p.getPlayer().equals(winner)) {
                     victories[i]++;
-                    if (victories[i] >= rules.getGamesToWinMatch()) {
-                        return true;
-                    }
                 }
                 i++;
             }
+        }
+
+        if (victories[0]+victories[1] == rules.getGamesPerMatch()) {
+            return true;
         }
 
         // Games are first to X wins, not first to X wins or Y total games played

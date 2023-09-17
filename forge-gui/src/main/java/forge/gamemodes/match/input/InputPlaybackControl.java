@@ -15,6 +15,8 @@ public class InputPlaybackControl extends InputSyncronizedBase {
 
     private PlaybackSpeed speed = PlaybackSpeed.NORMAL;
 
+    private boolean isFast = true;
+
     private final Game game;
     public InputPlaybackControl(final Game game0, final FControlGamePlayback fControlGamePlayback) {
         super(fControlGamePlayback.getController());

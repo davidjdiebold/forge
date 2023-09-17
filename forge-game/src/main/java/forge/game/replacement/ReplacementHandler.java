@@ -612,7 +612,8 @@ public class ReplacementHandler {
                     }
 
                     itr.remove();
-                    int damage = (int) executedParams.get(isPrevention ? AbilityKey.PreventedAmount : AbilityKey.DamageAmount);
+                    Object o = executedParams.get(isPrevention ? AbilityKey.PreventedAmount : AbilityKey.DamageAmount);
+                    int damage = o != null ? (int) o : (int)executedParams.get(AbilityKey.DamageAmount);
                     if (!damageSourceList.contains(source)) {
                         damageSourceList.add(source);
                     }

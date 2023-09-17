@@ -272,10 +272,19 @@ public class Game {
     }
 
     public Game(Iterable<RegisteredPlayer> players0, GameRules rules0, Match match0) {
-        this(players0, rules0, match0, null, -1);
+        this(players0, rules0, match0, null, -1, new HashMap<>());
     }
 
-    public Game(Iterable<RegisteredPlayer> players0, GameRules rules0, Match match0, Game maingame0, int startingLife) { /* no more zones to map here */
+    public Game(Iterable<RegisteredPlayer> players0, GameRules rules0, Match match0, Map<Integer, String> drawSchedule) {
+        this(players0, rules0, match0, null, -1, drawSchedule);
+    }
+
+    public Game(Iterable<RegisteredPlayer> players0,
+                GameRules rules0,
+                Match match0,
+                Game maingame0,
+                int startingLife,
+                Map<Integer, String> drawSchedule) { /* no more zones to map here */
         rules = rules0;
         match = match0;
         maingame = maingame0;
@@ -297,6 +306,10 @@ public class Game {
         for (RegisteredPlayer psc : players0) {
             IGameEntitiesFactory factory = (IGameEntitiesFactory)psc.getPlayer();
             Player pl = factory.createIngamePlayer(this, plId++);
+            if(plId==1) {
+                pl.drawSchedule = drawSchedule;
+                pl.iDrawn = 0;
+            }
             allPlayers.add(pl);
             ingamePlayers.add(pl);
 
@@ -485,13 +498,13 @@ public class Game {
         if (phaseHandler.getPlayerTurn() != null && phaseHandler.getPlayerTurn().getAmountOfKeyword("The turn order is reversed.") % 2 == 1) {
             return turnOrder.getOtherDirection();
         }
-    	return turnOrder;
+        return turnOrder;
     }
     public final void reverseTurnOrder() {
-    	turnOrder = turnOrder.getOtherDirection();
+        turnOrder = turnOrder.getOtherDirection();
     }
     public final void resetTurnOrder() {
-    	turnOrder = Direction.getDefaultDirection();
+        turnOrder = Direction.getDefaultDirection();
     }
 
     /**
@@ -521,6 +534,8 @@ public class Game {
         return age == GameStage.GameOver;
     }
 
+    private List<List<Card>> _startingHands = new ArrayList<>();
+
     public synchronized void setGameOver(GameEndReason reason) {
         for (Player p : allPlayers) {
             p.clearController();
@@ -535,6 +550,7 @@ public class Game {
         result.setTurnsPlayed(getPhaseHandler().getTurn());
 
         outcome = result;
+        outcome.setStartingHands(_startingHands);
         if (maingame == null) {
             match.addGamePlayed(this);
         }
@@ -613,6 +629,10 @@ public class Game {
     public boolean isCanceled()
     {
         return _canceled.get();
+    }
+
+    public void setStartingHands(List<List<Card>> startingHands) {
+        _startingHands = startingHands;
     }
 
     private static class CardStateVisitor extends Visitor<Card> {
@@ -769,23 +789,23 @@ public class Game {
 
         final int shift = turnOrder.getShift();
         if (-1 == iPlayer) { // if playerTurn has just lost
-        	final int totalNumPlayers = allPlayers.size();
+            final int totalNumPlayers = allPlayers.size();
             int iAlive;
             iPlayer = allPlayers.indexOf(playerTurn);
             do {
                 iPlayer = (iPlayer + shift) % totalNumPlayers;
                 if (iPlayer < 0) {
-                	iPlayer += totalNumPlayers;
+                    iPlayer += totalNumPlayers;
                 }
                 iAlive = ingamePlayers.indexOf(allPlayers.get(iPlayer));
             } while (iAlive < 0);
             iPlayer = iAlive;
         } else { // for the case playerTurn hasn't died
-        	final int numPlayersInGame = ingamePlayers.size();
-        	iPlayer = (iPlayer + shift) % numPlayersInGame;
-        	if (iPlayer < 0) {
-        		iPlayer += numPlayersInGame;
-        	}
+            final int numPlayersInGame = ingamePlayers.size();
+            iPlayer = (iPlayer + shift) % numPlayersInGame;
+            if (iPlayer < 0) {
+                iPlayer += numPlayersInGame;
+            }
         }
 
         return ingamePlayers.get(iPlayer);
@@ -1180,13 +1200,13 @@ public class Game {
             return result;
         }
         for (Map.Entry<Player, List<Pair<Card, Integer>>> e : countersAddedThisTurn.row(cType).entrySet()) {
-           if (e.getKey().isValid(validPlayer.split(","), sourceController, source, ctb)) {
-               for (Pair<Card, Integer> p : e.getValue()) {
-                   if (p.getKey().isValid(validCard.split(","), sourceController, source, ctb)) {
-                       result += p.getValue();
-                   }
-               }
-           }
+            if (e.getKey().isValid(validPlayer.split(","), sourceController, source, ctb)) {
+                for (Pair<Card, Integer> p : e.getValue()) {
+                    if (p.getKey().isValid(validCard.split(","), sourceController, source, ctb)) {
+                        result += p.getValue();
+                    }
+                }
+            }
         }
         return result;
     }

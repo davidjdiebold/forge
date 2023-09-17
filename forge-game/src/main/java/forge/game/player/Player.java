@@ -17,6 +17,12 @@
  */
 package forge.game.player;
 
+import java.util.*;
+import java.util.Map.Entry;
+
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.*;
@@ -1245,13 +1251,8 @@ public class Player extends GameEntity implements Comparable<Player> {
         }
 
         if (!library.isEmpty()) {
-            Card c;
 
-            if (hasKeyword("You draw cards from the bottom of your library instead of the top of your library.")) {
-                c = library.get(library.size() - 1);
-            } else {
-                c = library.get(0);
-            }
+            Card c = getCard(library);
 
             List<Player> pList = Lists.newArrayList();
             for (Player p : getAllOtherPlayers()) {
@@ -1302,6 +1303,32 @@ public class Player extends GameEntity implements Comparable<Player> {
             triedToDrawFromEmptyLibrary = true;
         }
         return drawn;
+    }
+
+    //TODO player created for each game ?
+    public int iDrawn = 0;
+    public Map<Integer, String> drawSchedule = new HashMap<>();
+    public List<String> drawn = new ArrayList<>();
+    private Card getCard(PlayerZone library) {
+        Card c;
+        String shouldBeDrawn = drawSchedule != null ? drawSchedule.get(iDrawn) : null;
+        ++iDrawn;
+        if(shouldBeDrawn!=null)
+        {
+            for (Card card : library.getCards()) {
+                if(card.getName().equals(shouldBeDrawn)) {
+                    drawn.add(card.getName());
+                    return card;
+                }
+            }
+        }
+        if (hasKeyword("You draw cards from the bottom of your library instead of the top of your library.")) {
+            c = library.get(library.size() - 1);
+        } else {
+            c = library.get(0);
+        }
+        drawn.add(c.getName());
+        return c;
     }
 
     /**

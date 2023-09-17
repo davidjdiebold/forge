@@ -18,20 +18,17 @@
 package forge.game;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.sql.Array;
+import java.util.*;
 import java.util.Map.Entry;
 
 import com.google.common.collect.Lists;
 
 import forge.LobbyPlayer;
-import forge.game.player.Player;
-import forge.game.player.PlayerOutcome;
-import forge.game.player.PlayerStatistics;
-import forge.game.player.PlayerView;
-import forge.game.player.RegisteredPlayer;
+import forge.game.card.Card;
+import forge.game.card.CardCollectionView;
+import forge.game.player.*;
+import forge.game.zone.ZoneType;
 import forge.item.PaperCard;
 
 /**
@@ -47,6 +44,17 @@ import forge.item.PaperCard;
 // only getters) and
 // GameObserver class - who should be notified of any considerable ingame event
 public final class GameOutcome implements Iterable<Entry<RegisteredPlayer, PlayerStatistics>> {
+
+    private List<List<Card>> _startingHands = new ArrayList<>();
+
+    public List<List<Card>> getStartingHands() {
+        return _startingHands;
+    }
+
+    public void setStartingHands(List<List<Card>> startingHands) {
+        _startingHands = startingHands;
+    }
+
     public static class AnteResult implements Serializable {
         private static final long serialVersionUID = 5087554550408543192L;
 

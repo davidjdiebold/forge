@@ -61,6 +61,7 @@ public class RestartGameEffect extends SpellAbilityEffect {
         GameAction action = game.getAction();
 
         for (Player p: players) {
+            p.iDrawn = 0;
             p.setStartingLife(p.getStartingLife());
             p.clearCounters();
             p.resetSpellCastThisGame();

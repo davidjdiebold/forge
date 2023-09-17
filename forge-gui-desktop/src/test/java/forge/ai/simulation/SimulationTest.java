@@ -1,6 +1,7 @@
 package forge.ai.simulation;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -46,7 +47,7 @@ public class SimulationTest {
         players.add(new RegisteredPlayer(d1).setPlayer(new LobbyPlayerAi("p1", options)));
         GameRules rules = new GameRules(GameType.Constructed);
         Match match = new Match(rules, players, "Test");
-        Game game = new Game(players, rules, match);
+        Game game = new Game(players, rules, match, new HashMap<>());
         game.setAge(GameStage.Play);
 
         return game;

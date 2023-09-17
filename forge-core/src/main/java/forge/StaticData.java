@@ -43,6 +43,8 @@ public class StaticData {
 
     private boolean filteredHandsEnabled = false;
 
+    private boolean randomInitialHandEnabled = false;
+
     private MulliganDefs.MulliganRule mulliganRule = MulliganDefs.getDefaultRule();
 
     private boolean allowCustomCardsInDecksConformance;
@@ -921,5 +923,13 @@ public class StaticData {
             }
         }
         return false;
+    }
+
+    public boolean isRandomInitialHandEnabled() {
+        return randomInitialHandEnabled;
+    }
+
+    public void setRandomInitialHandEnabled(boolean randomInitialHandEnabled) {
+        this.randomInitialHandEnabled = randomInitialHandEnabled;
     }
 }

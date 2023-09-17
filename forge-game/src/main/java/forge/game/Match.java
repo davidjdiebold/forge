@@ -68,7 +68,12 @@ public class Match {
     }
 
     public Game createGame() {
-        return new Game(players, rules, this);
+        return createGame(new HashMap<>());
+    }
+
+    public Game createGame(Map<Integer, String> drawSchedule) {
+        Game game = new Game(players, rules, this, drawSchedule);
+        return game;
     }
 
     public void startGame(final Game game) {
@@ -228,7 +233,7 @@ public class Match {
         boolean canSideBoard = !isFirstGame && rules.getGameType().isSideboardingAllowed();
         // Only allow this if feature flag is on AND for certain match types
         boolean sideboardForAIs = rules.getSideboardForAI() &&
-            rules.getGameType().getDeckFormat().equals(DeckFormat.Constructed);
+                rules.getGameType().getDeckFormat().equals(DeckFormat.Constructed);
         PlayerController sideboardProxy = null;
         if (canSideBoard && sideboardForAIs) {
             for (int i = 0; i < players.size(); i++) {

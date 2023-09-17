@@ -1,6 +1,7 @@
 package forge.ai.simulation;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -82,8 +83,7 @@ public class GameCopier {
 
         GameRules currentRules = origGame.getRules();
         Match newMatch = new Match(currentRules, newPlayers, origGame.getView().getTitle());
-        Game newGame = new Game(newPlayers, currentRules, newMatch);
-
+        Game newGame = new Game(newPlayers, currentRules, newMatch, new HashMap<>());
         for (int i = 0; i < origGame.getPlayers().size(); i++) {
             Player origPlayer = origGame.getPlayers().get(i);
             Player newPlayer = newGame.getPlayers().get(i);

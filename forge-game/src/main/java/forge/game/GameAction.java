@@ -17,6 +17,12 @@
  */
 package forge.game;
 
+import java.util.*;
+
+import forge.util.*;
+
+import org.apache.commons.lang3.tuple.ImmutablePair;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 
@@ -2075,16 +2081,36 @@ public class GameAction {
 
             runPreOpeningHandActions(first);
 
+            boolean firstPlayer = true;
             game.setAge(GameStage.Mulligan);
             for (final Player p1 : game.getPlayers()) {
                 if (StaticData.instance().getFilteredHandsEnabled() ) {
                     drawStartingHand(p1);
                 } else {
-                    p1.drawCards(p1.getStartingHandSize());
+                    int startingHandSize = p1.getStartingHandSize();
+                    if(firstPlayer && StaticData.instance().isRandomInitialHandEnabled()) {
+                        Random random = new Random();
+                        while(random.nextDouble() > 0.7 && startingHandSize>=6) {
+                            startingHandSize--;
+                        }
+                    }
+                    p1.drawCards(startingHandSize);
                 }
-
+                firstPlayer = false;
                 // If pl has Backup Plan as a Conspiracy draw that many extra hands
             }
+
+            List<List<Card>> startingHands = new ArrayList<>();
+            for (Player player : game.getPlayers()) {
+                CardCollectionView cardsIn = player.getCardsIn(new ZoneType[]{ZoneType.Hand});
+                ArrayList<Card> hand = new ArrayList<>();
+                startingHands.add(hand);
+                Iterator<Card> it = cardsIn.iterator();
+                while(it.hasNext()) {
+                    hand.add(it.next());
+                }
+            }
+            game.setStartingHands(startingHands);
 
             // Choose starting hand for each player with multiple hands
             if (game.getRules().getGameType() != GameType.Puzzle) {

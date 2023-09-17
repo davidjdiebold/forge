@@ -2,6 +2,7 @@ package forge.game.ability.effects;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import com.google.common.collect.Lists;
@@ -38,7 +39,7 @@ public class SubgameEffect extends SpellAbilityEffect {
             players.add(p.getRegisteredPlayer());
         }
 
-        return new Game(players, maingame.getRules(), maingame.getMatch(), maingame, startingLife);
+        return new Game(players, maingame.getRules(), maingame.getMatch(), maingame, startingLife, new HashMap<>());
     }
 
     private final void setCardsInZone(Player player, final ZoneType zoneType, final CardCollectionView oldCards, boolean addMapping) {

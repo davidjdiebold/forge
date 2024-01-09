@@ -1242,6 +1242,7 @@ public class AiAttackController {
         // decide on attack aggression based on a comparison of forces, life
         // totals and other considerations some bad "magic numbers" here
         // TODO replace with nice descriptive variable names
+        boolean shouldWaitToDevelop = combat.getAttackingPlayer().getCardsIn(ZoneType.Hand).size() - combat.getDefendingPlayers().get(0).getCardsIn(ZoneType.Hand).size() >= 2;
         if (ratioDiff > 0 && doAttritionalAttack) {
             aiAggression = 5; // attack at all costs
         } else if ((ratioDiff >= 1 && this.attackers.size() > 1 && (humanLifeToDamageRatio < 2 || outNumber > 0))
@@ -1259,8 +1260,8 @@ public class AiAttackController {
             aiAggression = 4; // random (chance-based) attack expecting to trade or damage player.
         } else if (ratioDiff >= 0 && this.attackers.size() > 1) {
             aiAggression = 3; // attack expecting to make good trades or damage player.
-        } else if (ratioDiff + outNumber >= -1 || aiLifeToPlayerDamageRatio > 1
-                || ratioDiff * -1 < turnsUntilDeathByUnblockable) {
+        } else if (!shouldWaitToDevelop && (ratioDiff + outNumber >= -1 || aiLifeToPlayerDamageRatio > 1
+                || ratioDiff * -1 < turnsUntilDeathByUnblockable)) {
             // at 0 ratio expect to potentially gain an advantage by attacking first
             // if the ai has a slight advantage
             // or the ai has a significant advantage numerically but only a slight disadvantage damage/life

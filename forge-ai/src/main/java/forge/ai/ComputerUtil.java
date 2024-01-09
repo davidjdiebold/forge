@@ -2244,21 +2244,20 @@ public class ComputerUtil {
         // otherwise, reject bad hands or return score
         if (landSize < 2) {
             // BAD Hands, 0 or 1 lands
-            if (landsInDeck == 0 || library.size()/landsInDeck > 6) {
+            if (landsInDeck == 0 || library.size()/landsInDeck > 6 || castables.size()>=2) {
                 // Heavy spell deck it's ok
                 return handSize;
             }
             return 0;
         } else if (landSize == handSize) {
-            if (library.size()/landsInDeck < 2) {
+            if (((double)library.size())/landsInDeck < 2) {
                 // Heavy land deck/Momir Basic it's ok
                 return handSize;
             }
             return 0;
-        } else if (handSize >= 7 && landSize >= handSize-1) {
+        } else if (handSize >= 7 && landSize >= handSize-2) {
             // BAD Hands - Mana flooding
-
-            if (library.size()/landsInDeck < 2) {
+            if (((double)library.size())/landsInDeck < 2) {
                 // Heavy land deck/Momir Basic it's ok
                 return handSize;
             }

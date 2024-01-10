@@ -15,6 +15,7 @@ import forge.player.GamePlayerUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -48,7 +49,8 @@ public class GameRunner {
 
                 Match mc = buildMatch(gameSetup);
 
-                final Game game = mc.createGame();
+                Map<Integer, String> drawSchedule = ApiAdapters.buildDrawSchedule(gameSetup.getDrawSchedules());
+                final Game game = mc.createGame(drawSchedule);
                 _timeoutPool.submit(() -> {
                     try {
                         Thread.sleep(1000 * 60 * 2);

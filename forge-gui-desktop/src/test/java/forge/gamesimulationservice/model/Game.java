@@ -6,6 +6,8 @@ public class Game {
 
     private Deck[] decks;
 
+    private DrawSchedule[] drawSchedules;
+
     public Game() {
     }
 
@@ -31,5 +33,13 @@ public class Game {
 
     public void setDecks(Deck[] decks) {
         this.decks = decks;
+    }
+
+    public DrawSchedule[] getDrawSchedules() {
+        return drawSchedules;
+    }
+
+    public void setDrawSchedules(DrawSchedule[] drawSchedules) {
+        this.drawSchedules = drawSchedules;
     }
 }

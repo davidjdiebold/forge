@@ -7,11 +7,15 @@ import forge.game.GameEndReason;
 import forge.game.player.PlayerStatistics;
 import forge.game.player.RegisteredPlayer;
 import forge.gamesimulationservice.model.CardCount;
+import forge.gamesimulationservice.model.Draw;
+import forge.gamesimulationservice.model.DrawSchedule;
 import forge.gamesimulationservice.model.GameOutcome;
 import forge.item.PaperCard;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class ApiAdapters {
     public static Deck buildDeck(forge.gamesimulationservice.model.Deck deck, String name) {
@@ -25,6 +29,17 @@ public class ApiAdapters {
             ret.getMain().add(c, cardCount.getCount());
         }
         return ret;
+    }
+
+    public static Map<Integer, String> buildDrawSchedule(DrawSchedule[] schedule) {
+        Map<Integer, String> drawSchedule = new HashMap<>();
+        if (schedule != null && schedule.length > 0) {
+            int iSchedule = new Random().nextInt(schedule.length);
+            for (Draw draw : schedule[iSchedule].getDraws()) {
+                drawSchedule.put(draw.getRank(), draw.getCard());
+            }
+        }
+        return drawSchedule;
     }
 
     public static GameOutcome build(String gameId, forge.game.Game game) {

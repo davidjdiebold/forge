@@ -110,7 +110,7 @@ public class ChooseCardNameEffect extends SpellAbilityEffect {
                     faces.add(StaticData.instance().getCommonCards().getFaceByName(name));
                 }
                 if (randomChoice) {
-                    chosen = Aggregates.random(faces).getName();
+                    chosen = Aggregates.random(faces, host.getGame().getRandom()).getName();
                 } else {
                     chosen = p.getController().chooseCardName(sa, faces, message);
                 }
@@ -132,7 +132,7 @@ public class ChooseCardNameEffect extends SpellAbilityEffect {
                 }
                 if (randomChoice) {
                     final Iterable<ICardFace> cards = Iterables.filter(StaticData.instance().getCommonCards().getAllFaces(), cpp);
-                    chosen = Aggregates.random(cards).getName();
+                    chosen = Aggregates.random(cards, host.getGame().getRandom()).getName();
                 } else {
                     chosen = p.getController().chooseCardName(sa, cpp, valid, message);
                 }

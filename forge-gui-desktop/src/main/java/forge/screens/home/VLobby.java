@@ -53,10 +53,7 @@ import forge.toolbox.FScrollPanel;
 import forge.toolbox.FSkin;
 import forge.toolbox.FSkin.SkinImage;
 import forge.toolbox.FTextField;
-import forge.util.Aggregates;
-import forge.util.Lang;
-import forge.util.Localizer;
-import forge.util.NameGenerator;
+import forge.util.*;
 import net.miginfocom.swing.MigLayout;
 
 /**
@@ -557,9 +554,9 @@ public class VLobby implements ILobbyView {
                 vanguardAvatar = deck.get(DeckSection.Avatar).get(0);
             } else { //Only other string is "Random"
                 if (isPlayerAI(playerIndex)) { //AI
-                    vanguardAvatar = Aggregates.random(getNonRandomAiAvatars());
+                    vanguardAvatar = Aggregates.random(getNonRandomAiAvatars(), MyRandom.getRandom());
                 } else { //Human
-                    vanguardAvatar = Aggregates.random(getNonRandomHumanAvatars());
+                    vanguardAvatar = Aggregates.random(getNonRandomHumanAvatars(), MyRandom.getRandom());
                 }
             }
         }

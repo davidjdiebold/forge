@@ -21,6 +21,7 @@ import forge.localinstance.properties.ForgeConstants;
 import forge.model.FModel;
 import forge.util.Aggregates;
 import forge.util.Localizer;
+import forge.util.MyRandom;
 
 public class ConquestChaosBattle extends ConquestBattle {
     private final QuestWorld world;
@@ -53,12 +54,12 @@ public class ConquestChaosBattle extends ConquestBattle {
 
         //loop until we find a duel
         do {
-            world0 = Aggregates.random(FModel.getWorlds());
+            world0 = Aggregates.random(FModel.getWorlds(), MyRandom.getRandom());
             String worldDir = world0 != null && world0.isCustom() ? ForgeConstants.USER_QUEST_WORLD_DIR : ForgeConstants.QUEST_WORLD_DIR;
             String path = world0 == null || world0.getDuelsDir() == null ? ForgeConstants.DEFAULT_DUELS_DIR : worldDir + world0.getDuelsDir();
             QuestEventDuelManager duelManager = new QuestEventDuelManager(new File(path));
             QuestEventDifficulty difficulty = prefferedDifficulty;
-            duel0 = Aggregates.random(duelManager.getDuels(difficulty));
+            duel0 = Aggregates.random(duelManager.getDuels(difficulty), MyRandom.getRandom());
 
             //if can't find duel at preferred difficulty, try lower difficulty
             while (duel0 == null && difficulty != QuestEventDifficulty.EASY) {
@@ -75,7 +76,7 @@ public class ConquestChaosBattle extends ConquestBattle {
                 default:
                     continue;
                 }
-                duel0 = Aggregates.random(duelManager.getDuels(difficulty));
+                duel0 = Aggregates.random(duelManager.getDuels(difficulty), MyRandom.getRandom());
             }
         } while (duel0 == null);
 

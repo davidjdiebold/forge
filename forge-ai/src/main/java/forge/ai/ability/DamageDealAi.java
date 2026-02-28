@@ -104,7 +104,7 @@ public class DamageDealAi extends DamageAiBase {
                 if (ai.getController().isAI()) {
                     AiController aic = ((PlayerControllerAi)ai.getController()).getAi();
                     int holdChance = aic.getIntProperty(AiProps.HOLD_X_DAMAGE_SPELLS_FOR_MORE_DAMAGE_CHANCE);
-                    if (MyRandom.percentTrue(holdChance)) {
+                    if (MyRandom.percentTrue(holdChance, ai.getGame().getRandom())) {
                         int threshold = aic.getIntProperty(AiProps.HOLD_X_DAMAGE_SPELLS_THRESHOLD);
                         boolean inDanger = ComputerUtil.aiLifeInDanger(ai, false, 0);
                         boolean isLethal = sa.getTargetRestrictions().canTgtPlayer() && dmg >= ai.getWeakestOpponent().getLife() && !ai.getWeakestOpponent().cantLoseForZeroOrLessLife();
@@ -1064,7 +1064,7 @@ public class DamageDealAi extends DamageAiBase {
             chance = 100; // in danger, do it even if normally the chance is low (unless chaining is completely disabled)
         }
 
-        if (!MyRandom.percentTrue(chance)) {
+        if (!MyRandom.percentTrue(chance, ai.getGame().getRandom())) {
             return null;
         }
 

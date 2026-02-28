@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import forge.util.MyRandom;
 import org.apache.commons.lang3.ArrayUtils;
 
 import forge.LobbyPlayer;
@@ -162,7 +163,7 @@ public class AiProfileUtil {
      * currently available ones.
      */
     public static String getRandomProfile() {
-        return Aggregates.random(getAvailableProfiles());
+        return Aggregates.random(getAvailableProfiles(), MyRandom.getRandom());
     }
 
     /**

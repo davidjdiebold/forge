@@ -170,11 +170,11 @@ public class CounterAi extends SpellAbilityAi {
         String ctrNamed = aic.getProperty(AiProps.ALWAYS_COUNTER_SPELLS_FROM_NAMED_CARDS);
         boolean dontCounter = false;
 
-        if (tgtCMC == 1 && !MyRandom.percentTrue(ctrChanceCMC1)) {
+        if (tgtCMC == 1 && !MyRandom.percentTrue(ctrChanceCMC1, ai.getGame().getRandom())) {
             dontCounter = true;
-        } else if (tgtCMC == 2 && !MyRandom.percentTrue(ctrChanceCMC2)) {
+        } else if (tgtCMC == 2 && !MyRandom.percentTrue(ctrChanceCMC2, ai.getGame().getRandom())) {
             dontCounter = true;
-        } else if (tgtCMC == 3 && !MyRandom.percentTrue(ctrChanceCMC3)) {
+        } else if (tgtCMC == 3 && !MyRandom.percentTrue(ctrChanceCMC3, ai.getGame().getRandom())) {
             dontCounter = true;
         }
 

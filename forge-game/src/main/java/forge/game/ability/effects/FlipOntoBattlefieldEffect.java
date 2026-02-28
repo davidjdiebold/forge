@@ -72,7 +72,7 @@ public class FlipOntoBattlefieldEffect extends SpellAbilityEffect {
             }
         }
         else if (outcome <= chanceToHit) {
-            hit.add(Aggregates.random(randChoices));
+            hit.add(Aggregates.random(randChoices, game.getRandom()));
             game.getAction().notifyOfValue(sa, host, Localizer.getInstance().getMessage("lblLandedOnOneCard", hit.getFirst()), null);
         } else {
             game.getAction().notifyOfValue(sa, host, Localizer.getInstance().getMessage("lblDidNotLandOnCards"), null);
@@ -123,7 +123,7 @@ public class FlipOntoBattlefieldEffect extends SpellAbilityEffect {
         // Chance to hit an attachment
         float hitAttachment = 0.50f;
         if (!attachments.isEmpty() && direction < 0 && MyRandom.getRandom().nextFloat() <= hitAttachment) {
-            return Aggregates.random(attachments);
+            return Aggregates.random(attachments, controller.getGame().getRandom());
         }
 
         int loc = cardsOTB.indexOf(c);

@@ -168,12 +168,12 @@ public class LegacyCardDb {
             if (candidates.isEmpty()) {
                 return null;
             }
-            result = Aggregates.random(candidates);
+            result = Aggregates.random(candidates, MyRandom.getRandom());
 
             // if card image doesn't exist for chosen candidate, try another one if possible
             while (candidates.size() > 1 && !result.hasImage()) {
                 candidates.remove(result);
-                result = Aggregates.random(candidates);
+                result = Aggregates.random(candidates, MyRandom.getRandom());
             }
         } else {
             for (PaperCard pc : cards) {

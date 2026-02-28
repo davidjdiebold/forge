@@ -46,7 +46,7 @@ public class WinstonDraftAI extends BoosterDraftAI{
             String desc = "Pile " + (draft.getCurrentBoosterIndex()+1);
             int value = pool.countAll() * 10;
             // If this is the last pile, and the deck is empty, definitely take the pile!
-            boolean takePile = MyRandom.percentTrue(value) || draft.isLastPileAndEmptyDeck(draft.getCurrentBoosterIndex());
+            boolean takePile = MyRandom.percentTrue(value, MyRandom.getRandom()) || draft.isLastPileAndEmptyDeck(draft.getCurrentBoosterIndex());
 
             if (takePile) {
                 acquire = draft.takeActivePile(false);

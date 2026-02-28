@@ -251,7 +251,7 @@ public class ComputerUtilCard {
                 }
             }
 
-            return Aggregates.random(nbLand);
+            return Aggregates.random(nbLand, list.iterator().next().getGame().getRandom());
         }
 
         // if no non-basic lands, target the least represented basic land type
@@ -277,7 +277,7 @@ public class ComputerUtilCard {
         }
 
         // TODO potentially risky if simulation mode currently able to reach this from triggers
-        return Aggregates.random(bLand); // random tapped land of least represented type
+        return Aggregates.random(bLand, list.iterator().next().getGame().getRandom()); // random tapped land of least represented type
     }
 
     /**
@@ -1709,7 +1709,7 @@ public class ComputerUtilCard {
         boolean wantToHoldTrick = holdCombatTricks && !ai.getCardsIn(ZoneType.Hand).isEmpty();
         if (chanceToHoldCombatTricks >= 0) {
             // Obey the chance specified in the AI profile for holding combat tricks
-            wantToHoldTrick &= MyRandom.percentTrue(chanceToHoldCombatTricks);
+            wantToHoldTrick &= MyRandom.percentTrue(chanceToHoldCombatTricks, ai.getGame().getRandom());
         } else {
             // Use standard considerations dependent solely on the buff chance determined above
             wantToHoldTrick &= MyRandom.getRandom().nextFloat() < chance;

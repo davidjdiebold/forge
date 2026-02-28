@@ -165,7 +165,7 @@ public class DamageDealEffect extends DamageBaseEffect {
                     AbilityUtils.calculateAmount(hostCard, sa.getParam("ChoiceAmount"), sa) : 1;
             if (sa.hasParam("Random")) { // only for Whimsy and Faerie Dragon
                 for (int i = 0; i < n; i++) {
-                    GameEntity random = Aggregates.random(choices);
+                    GameEntity random = Aggregates.random(choices, hostCard.getGame().getRandom());
                     tgts.add(random);
                     choices.remove(random);
                     hostCard.addRemembered(random); // remember random choices for log

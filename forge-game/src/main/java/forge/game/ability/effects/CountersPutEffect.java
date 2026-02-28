@@ -274,7 +274,7 @@ public class CountersPutEffect extends SpellAbilityEffect {
             }
             Map<Object, Integer> randomMap = Maps.newHashMap();
             for (int i = 0; i < counterRemain; i++) {
-                Card found = Aggregates.random(targets);
+                Card found = Aggregates.random(targets, game.getRandom());
                 found.addCounter(counterType, 1, placer, table);
                 if (randomMap.containsKey(found)) {
                     int oN = randomMap.get(found);
@@ -698,7 +698,7 @@ public class CountersPutEffect extends SpellAbilityEffect {
             }
         }
         if (sa.hasParam("RandomType")) {
-            return Aggregates.random(choices);
+            return Aggregates.random(choices, obj.getGame().getRandom());
         }
         Map<String, Object> params = Maps.newHashMap();
         params.put("Target", obj);

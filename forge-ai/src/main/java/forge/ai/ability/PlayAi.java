@@ -50,7 +50,7 @@ public class PlayAi extends SpellAbilityAi {
             }
             // Don't spam activate the Instant copying ability all the time to give the AI a chance to use other abilities
             // Can probably be improved, but as random as MoJhoSto already is, probably not a huge deal for now
-            if ("Instant".equals(sa.getParam("AnySupportedCard")) && MyRandom.percentTrue(chanceToActivateInst)) {
+            if ("Instant".equals(sa.getParam("AnySupportedCard")) && MyRandom.percentTrue(chanceToActivateInst, ai.getGame().getRandom())) {
                 return false;
             }
             return true;

@@ -133,7 +133,7 @@ public class TargetSelection {
             int bot = minTargets > 0 ? minTargets : 1; // prevents randomly choosing zero targets
             int num = tgt.isRandomNumTargets() ? Aggregates.randomInt(bot, top) : minTargets;
             for (int i=0; i<num; i++) {
-                final GameEntity choice = Aggregates.random(candidates);
+                final GameEntity choice = Aggregates.random(candidates, candidates.iterator().next().getGame().getRandom());
                 if (choice != null) {
                     choices.add(choice);
                     candidates.remove(choice);

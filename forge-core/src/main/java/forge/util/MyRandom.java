@@ -42,8 +42,8 @@ public class MyRandom {
      * @param percent an int.
      * @return a boolean.
      */
-    public static boolean percentTrue(final int percent) {
-        return percent > MyRandom.getRandom().nextInt(100);
+    public static boolean percentTrue(final int percent, Random random) {
+        return percent > random.nextInt(100);
     }
 
     /**

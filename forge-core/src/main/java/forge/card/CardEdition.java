@@ -895,7 +895,7 @@ public final class CardEdition implements Comparable<CardEdition> {
         }
 
         public static CardEdition getRandomSetWithAllBasicLands(Iterable<CardEdition> allEditions) {
-            return Aggregates.random(Iterables.filter(allEditions, hasBasicLands));
+            return Aggregates.random(Iterables.filter(allEditions, hasBasicLands), MyRandom.getRandom());
         }
 
         public static CardEdition getPreferredArtEditionWithAllBasicLands() {

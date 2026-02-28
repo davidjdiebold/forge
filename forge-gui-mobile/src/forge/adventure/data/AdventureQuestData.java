@@ -13,6 +13,7 @@ import forge.adventure.util.AdventureQuestEvent;
 import forge.adventure.util.Current;
 import forge.adventure.world.WorldSave;
 import forge.util.Aggregates;
+import forge.util.MyRandom;
 
 import java.io.Serializable;
 import java.util.*;
@@ -367,10 +368,10 @@ public class AdventureQuestData implements Serializable {
             }
         }
         if (matchesTags.isEmpty()){
-            return new EnemyData(Aggregates.random(WorldData.getAllEnemies()));
+            return new EnemyData(Aggregates.random(WorldData.getAllEnemies(), MyRandom.getRandom()));
         }
         else{
-            return new EnemyData(Aggregates.random(matchesTags));
+            return new EnemyData(Aggregates.random(matchesTags, MyRandom.getRandom()));
         }
     }
 

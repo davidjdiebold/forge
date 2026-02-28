@@ -59,7 +59,7 @@ public class PlayLandVariantEffect extends SpellAbilityEffect {
         // if activator cannot play the random land, loop
         do {
             if (cards.isEmpty()) return;
-            PaperCard ran = Aggregates.random(cards);
+            PaperCard ran = Aggregates.random(cards, game.getRandom());
             random = CardFactory.getCard(ran, activator, game);
             cards.remove(ran);
         } while (!activator.canPlayLand(random, false));

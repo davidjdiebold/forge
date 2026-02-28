@@ -43,6 +43,7 @@ import forge.toolbox.FOptionPane;
 import forge.trackable.TrackableCollection;
 import forge.util.Aggregates;
 import forge.util.Callback;
+import forge.util.MyRandom;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -132,7 +133,7 @@ public class DuelScene extends ForgeScene {
                     "Next time bring an army. It might give you a chance.", "The reason you lost is quite simple...",
                     "Is that all you can do?", "You need to learn more to stand a chance.", "You weren't that bad.", "You made an effort at least.",
                     "From today, you can call me teacher.", "Hmph, predictable!", "I haven't used a fraction of my REAL power!");
-            String message = Aggregates.random(insult);
+            String message = Aggregates.random(insult, MyRandom.getRandom());
             boolean finalWinner = winner;
             FThreads.invokeInEdtNowOrLater(() -> FOptionPane.showMessageDialog(message, enemyName, fb, new Callback<Integer>() {
                 @Override
@@ -246,7 +247,7 @@ public class DuelScene extends ForgeScene {
         if (chaosBattle) {
             deckProxyMapMap = DeckProxy.getAllQuestChallenges();
             List<DeckProxy> decks = new ArrayList<>(deckProxyMapMap.keySet());
-            deckProxy = Aggregates.random(decks);
+            deckProxy = Aggregates.random(decks, MyRandom.getRandom());
             //playerextras
             List<IPaperCard> playerCards = new ArrayList<>();
             for (String s : deckProxyMapMap.get(deckProxy).getLeft()) {
@@ -304,7 +305,7 @@ public class DuelScene extends ForgeScene {
                 this.AIExtras = aiCards;
                 deck = deckProxy.getDeck();
             } else if (this.arenaBattleChallenge) {
-                deck = Aggregates.random(DeckProxy.getAllGeneticAIDecks()).getDeck();
+                deck = Aggregates.random(DeckProxy.getAllGeneticAIDecks(), MyRandom.getRandom()).getDeck();
             } else if (this.eventData != null){
                 deck = eventData.nextOpponent.getDeck();
             } else {
@@ -392,7 +393,7 @@ public class DuelScene extends ForgeScene {
                     "Nowhere to run, nowhere to hide!", "This battle is over!", "There was no way out of that one!", "Let's do this!", "Let the madness begin!",
                     "It's all or nothing!", "It's all on the line!", "You can't back down now!", "Do you have what it takes?", "What will happen next?",
                     "Don't blink!", "You can't lose here!", "There's no turning back!", "It's all or nothing now!");
-            String message = Aggregates.random(list);
+            String message = Aggregates.random(list, MyRandom.getRandom());
             matchOverlay = new LoadingOverlay(() -> FThreads.delayInEDT(300, () -> FThreads.invokeInEdtNowOrLater(() ->
                     FOptionPane.showMessageDialog(message, enemy.getName(), fb, new Callback<Integer>() {
                         @Override

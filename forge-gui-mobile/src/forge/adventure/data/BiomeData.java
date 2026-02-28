@@ -96,7 +96,7 @@ public class BiomeData implements Serializable {
         List<EnemyData> extraSpawnEnemies = AdventureQuestController.instance().getExtraQuestSpawns(difficultyFactor);
         if (extraSpawnEnemies.isEmpty())
             return null;
-        return Aggregates.random(extraSpawnEnemies); //fallback, shouldn't reach this point but guarantee that we return something
+        return Aggregates.random(extraSpawnEnemies, MyRandom.getRandom()); //fallback, shouldn't reach this point but guarantee that we return something
     }
 
     public EnemyData getEnemy(float difficultyFactor) {
@@ -113,7 +113,7 @@ public class BiomeData implements Serializable {
                 return enemyList.get(i);
             }
         }
-        return Aggregates.random(enemyList); //fallback, shouldn't reach this point but guarantee that we return something
+        return Aggregates.random(enemyList, MyRandom.getRandom()); //fallback, shouldn't reach this point but guarantee that we return something
     }
 
     private ArrayList<String> unusedTownNames;

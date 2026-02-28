@@ -95,7 +95,7 @@ public class ChooseGenericEffect extends SpellAbilityEffect {
                         p.getController().chooseTargetsFor(chosenSAs.get(i));
                         i++;
                     } else {
-                        chosenSAs.set(i, Aggregates.random(abilities));
+                        chosenSAs.set(i, Aggregates.random(abilities, game.getRandom()));
                     }
                 }
             } else if (!abilities.isEmpty()) {

@@ -12,6 +12,7 @@ import forge.game.IHasGameType;
 import forge.gamemodes.quest.QuestController;
 import forge.model.FModel;
 import forge.util.Aggregates;
+import forge.util.MyRandom;
 
 public class RandomDeckGenerator extends DeckProxy implements Comparable<RandomDeckGenerator> {
     private enum RandomDeckType {
@@ -94,9 +95,9 @@ public class RandomDeckGenerator extends DeckProxy implements Comparable<RandomD
                 while (true) {
                     switch (Aggregates.random(DeckType.ConstructedOptions)) {
                         case PRECONSTRUCTED_DECK:
-                            return Aggregates.random(DeckProxy.getAllPreconstructedDecks(QuestController.getPrecons())).getDeck();
+                            return Aggregates.random(DeckProxy.getAllPreconstructedDecks(QuestController.getPrecons()), MyRandom.getRandom()).getDeck();
                         case QUEST_OPPONENT_DECK:
-                            return Aggregates.random(DeckProxy.getAllQuestEventAndChallenges()).getDeck();
+                            return Aggregates.random(DeckProxy.getAllQuestEventAndChallenges(), MyRandom.getRandom()).getDeck();
                         case COLOR_DECK:
                             List<String> colors = new ArrayList<>();
                             int count = Aggregates.randomInt(1, 3);
@@ -125,7 +126,7 @@ public class RandomDeckGenerator extends DeckProxy implements Comparable<RandomD
                         case PAUPER_COLOR_DECK:
                             return generateRandomColorDeckOfFormat(FModel.getFormats().getPauper());
                         case THEME_DECK:
-                            return Aggregates.random(DeckProxy.getAllThemeDecks()).getDeck();
+                            return Aggregates.random(DeckProxy.getAllThemeDecks(), MyRandom.getRandom()).getDeck();
                         default:
                             continue;
                     }
@@ -176,8 +177,8 @@ public class RandomDeckGenerator extends DeckProxy implements Comparable<RandomD
         }
         Iterable<DeckProxy> AIDecks = Iterables.filter(decks, deckProxy -> deckProxy.getAI().inMainDeck == 0);
         if (isAi && Iterables.size(AIDecks) > 10)
-            return Aggregates.random(AIDecks).getDeck();
-        return Aggregates.random(decks).getDeck();
+            return Aggregates.random(AIDecks, MyRandom.getRandom()).getDeck();
+        return Aggregates.random(decks, MyRandom.getRandom()).getDeck();
     }
 
     private Deck getFavoriteDeck() {
@@ -212,7 +213,7 @@ public class RandomDeckGenerator extends DeckProxy implements Comparable<RandomD
         if (Iterables.isEmpty(decks)) {
             return getGeneratedDeck(); //fall back to generated deck if no favorite decks
         }
-        return Aggregates.random(decks).getDeck();
+        return Aggregates.random(decks, MyRandom.getRandom()).getDeck();
     }
 
     @Override

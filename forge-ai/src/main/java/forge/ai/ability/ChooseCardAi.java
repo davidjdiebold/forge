@@ -197,7 +197,7 @@ public class ChooseCardAi extends SpellAbilityAi {
             choice = ComputerUtilCard.getBestAI(options);
         } else if ("RandomNonLand".equals(logic)) {
             options = CardLists.getValidCards(options, "Card.nonLand", host.getController(), host, sa);
-            choice = Aggregates.random(options);
+            choice = Aggregates.random(options, ai.getGame().getRandom());
         } else if (logic.equals("NeedsPrevention")) {
             final Game game = ai.getGame();
             final Combat combat = game.getCombat();

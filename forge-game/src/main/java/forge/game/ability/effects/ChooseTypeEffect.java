@@ -125,7 +125,7 @@ public class ChooseTypeEffect extends SpellAbilityEffect {
                 String choice;
                 Player noNotify = p;
                 if (sa.hasParam("AtRandom")) {
-                    choice = Aggregates.random(validTypes);
+                    choice = Aggregates.random(validTypes, p.getGame().getRandom());
                     noNotify = null;
                 } else {
                     choice = p.getController().chooseSomeType(type, sa, validTypes, invalidTypes);

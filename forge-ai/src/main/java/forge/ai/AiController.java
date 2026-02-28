@@ -490,7 +490,7 @@ public class AiController {
             String landStrategy = getProperty(AiProps.MOMIR_BASIC_LAND_STRATEGY);
             if (landStrategy.equalsIgnoreCase("random")) {
                 // Pick a completely random basic land
-                return Aggregates.random(landList);
+                return Aggregates.random(landList, game.getRandom());
             } else if (landStrategy.toLowerCase().startsWith("preforder:")) {
                 // Pick a basic land in order of preference, or play a random one if nothing is preferred
                 String order = landStrategy.substring(10);
@@ -504,7 +504,7 @@ public class AiController {
                         }
                     }
                 }
-                return Aggregates.random(landList);
+                return Aggregates.random(landList, game.getRandom());
             }
             // If nothing is done here, proceeds to the default land picking strategy
         }
@@ -1187,7 +1187,7 @@ public class AiController {
                             }
                             if (worst == null) {
                                 // Otherwise just grab a random card and discard it
-                                worst = Aggregates.random(validCards);
+                                worst = Aggregates.random(validCards, game.getRandom());
                             }
                         }
                     }
@@ -1415,7 +1415,7 @@ public class AiController {
             return false;
         }
 
-        if (!MyRandom.percentTrue(getIntProperty(AiProps.HOLD_LAND_DROP_FOR_MAIN2_IF_UNUSED))) {
+        if (!MyRandom.percentTrue(getIntProperty(AiProps.HOLD_LAND_DROP_FOR_MAIN2_IF_UNUSED), player.getGame().getRandom())) {
             // check against the chance specified in the profile
             return false;
         }
@@ -1880,7 +1880,7 @@ public class AiController {
                     return options.get(0);
                 }
             case ChooseNumber:
-                return Aggregates.random(options);
+                return Aggregates.random(options, game.getRandom());
             default:
                 return options.get(0);
         }
@@ -1947,7 +1947,7 @@ public class AiController {
                         break;
                     }
                 }
-                result.add(Aggregates.random(pool)); // should ideally never get here
+                result.add(Aggregates.random(pool, game.getRandom())); // should ideally never get here
                 break;
             default:
                 CardCollection editablePool = new CardCollection(pool);

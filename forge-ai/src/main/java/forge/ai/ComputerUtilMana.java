@@ -39,7 +39,6 @@ import forge.game.trigger.Trigger;
 import forge.game.trigger.TriggerType;
 import forge.game.zone.Zone;
 import forge.game.zone.ZoneType;
-import forge.util.MyRandom;
 import forge.util.TextUtil;
 import org.apache.commons.lang3.StringUtils;
 
@@ -1074,7 +1073,9 @@ public class ComputerUtilMana {
         // obey mana reservations for Main 2; otherwise, obey mana reservations depending on the "chance to reserve"
         // AI profile variable.
         if (sa.getSVar("LowPriorityAI").equals("")) {
-            if (chanceToReserve == 0 || MyRandom.getRandom().nextInt(100) >= chanceToReserve) {
+            if (chanceToReserve == 0 ||
+                ai.getGame().getRandom().nextInt(100) >= chanceToReserve
+            ) {
                 return false;
             }
         }

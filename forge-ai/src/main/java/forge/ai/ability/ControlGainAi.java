@@ -103,7 +103,7 @@ public class ControlGainAi extends SpellAbilityAi {
                 }
 
                 if (tgt.isRandomTarget()) {
-                    sa.getTargets().add(Aggregates.random(oppList));
+                    sa.getTargets().add(Aggregates.random(oppList, game.getRandom()));
                 } else {
                     sa.getTargets().add(oppList.get(0));
                 }
@@ -280,7 +280,7 @@ public class ControlGainAi extends SpellAbilityAi {
                     if (oppList.isEmpty()) {
                         return false;
                     }
-                    sa.getTargets().add(Aggregates.random(oppList));
+                    sa.getTargets().add(Aggregates.random(oppList, ai.getGame().getRandom()));
                     return true;
                 }
 

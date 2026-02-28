@@ -23,6 +23,7 @@ import forge.item.SealedProduct;
 import forge.item.generation.UnOpenedProduct;
 import forge.model.FModel;
 import forge.util.Aggregates;
+import forge.util.MyRandom;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -470,7 +471,7 @@ public class CardUtil {
                 //if the packContents size above is below 20, just get random card
                 int size = 20 - selectedPack.size();
                 for (int c = 0; c < size; c++) {
-                    selectedPack.add(Aggregates.random(selectedPack));
+                    selectedPack.add(Aggregates.random(selectedPack, MyRandom.getRandom()));
                 }
                 deck.getOrCreate(DeckSection.Main).addAllFlat(selectedPack);
             }
@@ -789,7 +790,7 @@ public class CardUtil {
             return null;
         }
 
-        CardEdition edition = Aggregates.random(possibleEditions);
+        CardEdition edition = Aggregates.random(possibleEditions, MyRandom.getRandom());
         return generateBoosterPackAsDeck(edition);
     }
 

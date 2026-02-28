@@ -13,6 +13,7 @@ import forge.adventure.pointofintrest.PointOfInterestChanges;
 import forge.adventure.stage.GameStage;
 import forge.adventure.stage.MapStage;
 import forge.util.Aggregates;
+import forge.util.MyRandom;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -587,9 +588,9 @@ public class AdventureQuestController implements Serializable {
             }
         }
         if (validSideQuests.size > 0)
-            ret = new AdventureQuestData(Aggregates.random(validSideQuests));
+            ret = new AdventureQuestData(Aggregates.random(validSideQuests, MyRandom.getRandom()));
         else
-            ret = new AdventureQuestData(Aggregates.random(allSideQuests));
+            ret = new AdventureQuestData(Aggregates.random(allSideQuests, MyRandom.getRandom()));
         ret.sourceID = pointID;
         ret.initialize();
         return ret;

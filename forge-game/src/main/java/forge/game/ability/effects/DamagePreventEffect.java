@@ -82,7 +82,7 @@ public class DamagePreventEffect extends DamagePreventEffectBase {
                 choices.addAll(AbilityUtils.getDefinedPlayers(host, sa.getParam("PlayerChoices"), sa));
             }
             if (sa.hasParam("Random")) { // currently everything using Choices is random
-                GameEntity random = Aggregates.random(choices);
+                GameEntity random = Aggregates.random(choices, host.getGame().getRandom());
                 tgts.add(random);
                 host.addRemembered(random); // remember random choices for log
             }

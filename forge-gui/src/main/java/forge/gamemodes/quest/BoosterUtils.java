@@ -208,7 +208,7 @@ public final class BoosterUtils {
 
         for (int i = 0; i < quantity; i++) {
 
-            CardEdition edition = Aggregates.random(possibleEditions);
+            CardEdition edition = Aggregates.random(possibleEditions, MyRandom.getRandom());
             BoosterPack pack = BoosterPack.FN_FROM_SET.apply(edition);
 
             if (pack != null) {
@@ -414,7 +414,7 @@ public final class BoosterUtils {
                 do {
                     if (color2 != null) {
                         Predicate<PaperCard> color2c = Predicates.compose(color2, PaperCard.FN_GET_RULES);
-                        card = Aggregates.random(Iterables.filter(source, Predicates.and(filter, color2c)));
+                        card = Aggregates.random(Iterables.filter(source, Predicates.and(filter, color2c)), MyRandom.getRandom());
                     }
                 } while (card == null && colorMisses++ < 10);
             }
@@ -558,7 +558,7 @@ public final class BoosterUtils {
             if (item.contains("%")) {
                 String[] tmp = item.split("%");
                 final int chance = Integer.parseInt(tmp[0].trim());
-                if (chance > 0 && tmp.length > 1 && MyRandom.percentTrue(chance)) {
+                if (chance > 0 && tmp.length > 1 && MyRandom.percentTrue(chance, MyRandom.getRandom())) {
                     input = tmp[1].trim();
                 }
             } else {

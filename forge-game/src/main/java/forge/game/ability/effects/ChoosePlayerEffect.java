@@ -40,7 +40,7 @@ public class ChoosePlayerEffect extends SpellAbilityEffect {
             }
             Player chosen;
             if (random) {
-                chosen = choices.isEmpty() ? null : Aggregates.random(choices);
+                chosen = choices.isEmpty() ? null : Aggregates.random(choices, card.getGame().getRandom());
             } else {
                 chosen = choices.isEmpty() ? null : p.getController().chooseSingleEntityForEffect(choices, sa, choiceDesc, sa.hasParam("Optional"), null);
             }

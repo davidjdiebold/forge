@@ -1109,10 +1109,10 @@ public class Game {
     private void chooseRandomCardsForAnte(final Player player, final Multimap<Player, Card> anteed) {
         final CardCollectionView lib = player.getCardsIn(ZoneType.Library);
         Predicate<Card> goodForAnte = Predicates.not(CardPredicates.Presets.BASIC_LANDS);
-        Card ante = Aggregates.random(Iterables.filter(lib, goodForAnte));
+        Card ante = Aggregates.random(Iterables.filter(lib, goodForAnte), getRandom());
         if (ante == null) {
             getGameLog().add(GameLogEntryType.ANTE, "Only basic lands found. Will ante one of them");
-            ante = Aggregates.random(lib);
+            ante = Aggregates.random(lib, getRandom());
         }
         anteed.put(player, ante);
     }

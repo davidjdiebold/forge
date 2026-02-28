@@ -2523,7 +2523,7 @@ public class ComputerUtil {
                 }
             }
             if (StringUtils.isEmpty(chosen)) {
-                chosen = validTypes.isEmpty() ? "Creature" : Aggregates.random(validTypes);
+                chosen = validTypes.isEmpty() ? "Creature" : Aggregates.random(validTypes, ai.getGame().getRandom());
             }
         } else if (kindOfType.equals("Creature")) {
             if (logic != null) {
@@ -2636,7 +2636,7 @@ public class ComputerUtil {
         final CounterType p1p1Type = CounterType.get(CounterEnumType.P1P1);
 
         if (!sa.hasParam("AILogic")) {
-            return Aggregates.random(options);
+            return Aggregates.random(options, ai.getGame().getRandom());
         }
 
         String logic = sa.getParam("AILogic");

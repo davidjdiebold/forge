@@ -81,7 +81,7 @@ public abstract class CountersAi extends SpellAbilityAi {
             }
         } else {
             // improve random choice here
-            choice = Aggregates.random(list);
+            choice = Aggregates.random(list, ai.getGame().getRandom());
         }
         return choice;
     }
@@ -122,7 +122,7 @@ public abstract class CountersAi extends SpellAbilityAi {
             // The AI really should put counters on cards that can use it.
             // Charge counters on things with Charge abilities, etc. Expand
             // these above
-            choice = Aggregates.random(list);
+            choice = Aggregates.random(list, choice.getGame().getRandom());
         }
         return choice;
     }

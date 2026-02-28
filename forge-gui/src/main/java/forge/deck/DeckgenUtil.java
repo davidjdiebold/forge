@@ -166,7 +166,10 @@ public class DeckgenUtil {
         for(Pair<String, Double> pair:preSelectedCardNames){
             String name = pair.getLeft();
             //remove any cards not valid in format
-            PaperCard cardToAdd = Aggregates.random(StaticData.instance().getCommonCards().getAllCards(name, format.getFilterPrinted()));
+            PaperCard cardToAdd = Aggregates.random(
+                    StaticData.instance().getCommonCards().getAllCards(name, format.getFilterPrinted()),
+                    MyRandom.getRandom()
+            );
             if (cardToAdd == null)
                 continue;
             if(!cardToAdd.getName().equals(card.getName())) {
@@ -257,7 +260,10 @@ public class DeckgenUtil {
         for(Pair<String, Double> pair:preSelectedCardNames){
             String name = pair.getLeft();
             //remove any cards not valid in format
-            PaperCard cardToAdd = Aggregates.random(StaticData.instance().getCommonCards().getAllCards(name, format.getFilterPrinted()));
+            PaperCard cardToAdd = Aggregates.random(
+                    StaticData.instance().getCommonCards().getAllCards(name, format.getFilterPrinted()),
+                    MyRandom.getRandom()
+            );
             if(cardToAdd != null && !cardToAdd.getName().equals(card.getName())) {
                 selectedCards.add(cardToAdd);
                 cardCount++;
@@ -468,22 +474,25 @@ public class DeckgenUtil {
         try {
             if (useGeneticAI) {
                 if (!selection.isEmpty())
-                    deck = Aggregates.random(Iterables.filter(geneticAI, deckProxy -> deckProxy.getColorIdentity().sharesColorWith(ColorSet.fromNames(colors.toCharArray())))).getDeck();
+                    deck = Aggregates.random(
+                            Iterables.filter(geneticAI, deckProxy -> deckProxy.getColorIdentity().sharesColorWith(ColorSet.fromNames(colors.toCharArray()))),
+                            MyRandom.getRandom()
+                    ).getDeck();
                 else
-                    deck = Aggregates.random(geneticAI).getDeck();
+                    deck = Aggregates.random(geneticAI, MyRandom.getRandom()).getDeck();
 
             } else {
                 if (!selection.isEmpty() && selection.size() < 4) {
                     Predicate<DeckProxy> pred = Predicates.and(deckProxy -> deckProxy.getMainSize() <= 60, deckProxy -> deckProxy.getColorIdentity().hasAllColors(ColorSet.fromNames(colors.toCharArray()).getColor()));
                     if (isTheme)
-                        deck = Aggregates.random(Iterables.filter(advThemes, pred)).getDeck();
+                        deck = Aggregates.random(Iterables.filter(advThemes, pred), MyRandom.getRandom()).getDeck();
                     else
-                        deck = Aggregates.random(Iterables.filter(advPrecons, pred)).getDeck();
+                        deck = Aggregates.random(Iterables.filter(advPrecons, pred), MyRandom.getRandom()).getDeck();
                 } else {
                     if (isTheme)
-                        deck = Aggregates.random(Iterables.filter(advThemes, deckProxy -> deckProxy.getMainSize() <= 60)).getDeck();
+                        deck = Aggregates.random(Iterables.filter(advThemes, deckProxy -> deckProxy.getMainSize() <= 60), MyRandom.getRandom()).getDeck();
                     else
-                        deck = Aggregates.random(Iterables.filter(advPrecons, deckProxy -> deckProxy.getMainSize() <= 60)).getDeck();
+                        deck = Aggregates.random(Iterables.filter(advPrecons, deckProxy -> deckProxy.getMainSize() <= 60), MyRandom.getRandom()).getDeck();
                 }
             }
         } catch (Exception e) {
@@ -505,7 +514,7 @@ public class DeckgenUtil {
     /** @return {@link forge.deck.Deck} */
     public static Deck getRandomCommanderPreconDeck() {
         final Iterable<DeckProxy> allDecks = DeckProxy.getAllCommanderPreconDecks();
-        return Aggregates.random(allDecks).getDeck();
+        return Aggregates.random(allDecks, MyRandom.getRandom()).getDeck();
     }
 
     /** @return {@link forge.deck.Deck} */
@@ -608,7 +617,7 @@ public class DeckgenUtil {
         int schemesToAdd = 20;
         int attemptsLeft = 100; // to avoid endless loop
         while (schemesToAdd > 0 && attemptsLeft > 0) {
-            PaperCard cp = Aggregates.random(allSchemes);
+            PaperCard cp = Aggregates.random(allSchemes, MyRandom.getRandom());
             int appearances = schemes.count(cp) + 1;
             if (appearances < 2) {
                 schemes.add(cp);
@@ -640,7 +649,7 @@ public class DeckgenUtil {
         int phenoms = 0;
         int targetsize = MyRandom.getRandom().nextInt(allPlanars.size()-10)+10;
         while (true) {
-            PaperCard rndPlane = Aggregates.random(allPlanars);
+            PaperCard rndPlane = Aggregates.random(allPlanars, MyRandom.getRandom());
             allPlanars.remove(rndPlane);
 
             if (rndPlane.getRules().getType().isPhenomenon() && phenoms < 2) {
@@ -673,7 +682,7 @@ public class DeckgenUtil {
         Iterable<PaperCard> legends = cardDb.getAllCards(Predicates.and(format.isLegalCardPredicate(), format.isLegalCommanderPredicate(),
                 Predicates.compose(canPlay, PaperCard.FN_GET_RULES)));
 
-        commander = Aggregates.random(legends);
+        commander = Aggregates.random(legends, MyRandom.getRandom());
         return generateRandomCommanderDeck(commander, format, forAi, false);
     }
 

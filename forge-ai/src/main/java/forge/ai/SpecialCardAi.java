@@ -228,7 +228,7 @@ public class SpecialCardAi {
                 // to avoid failure to add to stack, provide a legal target opponent first (choosing random at this point)
                 // TODO: this makes the AI target opponents with 0 cards in hand, but bailing from here causes a
                 // "failed to add to stack" error, needs investigation and improvement.
-                Player targOpp = Aggregates.random(ai.getOpponents());
+                Player targOpp = Aggregates.random(ai.getOpponents(), ai.getGame().getRandom());
 
                 for (Player opp : ai.getOpponents()) {
                     if (!opp.getCardsIn(ZoneType.Hand).isEmpty()) {
@@ -998,7 +998,7 @@ public class SpecialCardAi {
             }
 
             // Fetch a random gate if we already have all types
-            return Aggregates.random(availableGates);
+            return Aggregates.random(availableGates, ai.getGame().getRandom());
         }
     }
 
@@ -1073,7 +1073,8 @@ public class SpecialCardAi {
                 int chanceToPrefJhoira = aic.getIntProperty(AiProps.MOJHOSTO_CHANCE_TO_PREFER_JHOIRA_OVER_MOMIR);
                 int numLandsForJhoira = aic.getIntProperty(AiProps.MOJHOSTO_NUM_LANDS_TO_ACTIVATE_JHOIRA);
 
-                if (ai.getLandsInPlay().size() >= numLandsForJhoira && MyRandom.percentTrue(chanceToPrefJhoira)) {
+                if (ai.getLandsInPlay().size() >= numLandsForJhoira &&
+                        MyRandom.percentTrue(chanceToPrefJhoira, ai.getGame().getRandom())) {
                     return false;
                 }
             }
@@ -1294,7 +1295,10 @@ public class SpecialCardAi {
     // Power Struggle
     public static class PowerStruggle {
         public static boolean considerFirstTarget(final Player ai, final SpellAbility sa) {
-            Card firstTgt = (Card)Aggregates.random(sa.getTargetRestrictions().getAllCandidates(sa, true));
+            Card firstTgt = (Card)Aggregates.random(
+                    sa.getTargetRestrictions().getAllCandidates(sa, true),
+                    ai.getGame().getRandom()
+            );
             if (firstTgt != null) {
                 sa.getTargets().add(firstTgt);
                 return true;
@@ -1307,7 +1311,7 @@ public class SpecialCardAi {
             Card firstTgt = sa.getParent().getTargetCard();
             Iterable<Card> candidates = Iterables.filter(ai.getOpponents().getCardsIn(ZoneType.Battlefield),
                     Predicates.and(CardPredicates.sharesCardTypeWith(firstTgt), CardPredicates.isTargetableBy(sa)));
-            Card secondTgt = Aggregates.random(candidates);
+            Card secondTgt = Aggregates.random(candidates, ai.getGame().getRandom());
             if (secondTgt != null) {
                 sa.resetTargets();
                 sa.getTargets().add(secondTgt);

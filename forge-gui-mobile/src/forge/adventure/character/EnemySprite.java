@@ -452,25 +452,25 @@ public class EnemySprite extends CharacterSprite implements Steerable<Vector2> {
                         .filter(paperCard -> CardRarity.Uncommon.equals(paperCard.getRarity()) || CardRarity.Special.equals(paperCard.getRarity()))
                         .collect(Collectors.toList());
                 if (!uncommonCards.isEmpty()) {
-                    ret.add(new Reward(Aggregates.random(uncommonCards)));
-                    ret.add(new Reward(Aggregates.random(uncommonCards)));
+                    ret.add(new Reward(Aggregates.random(uncommonCards, MyRandom.getRandom())));
+                    ret.add(new Reward(Aggregates.random(uncommonCards, MyRandom.getRandom())));
                 }
                 //random commons from deck
                 List<PaperCard> commmonCards = paperCardList.stream()
                         .filter(paperCard -> CardRarity.Common.equals(paperCard.getRarity()))
                         .collect(Collectors.toList());
                 if (!commmonCards.isEmpty()) {
-                    ret.add(new Reward(Aggregates.random(commmonCards)));
-                    ret.add(new Reward(Aggregates.random(commmonCards)));
-                    ret.add(new Reward(Aggregates.random(commmonCards)));
+                    ret.add(new Reward(Aggregates.random(commmonCards, MyRandom.getRandom())));
+                    ret.add(new Reward(Aggregates.random(commmonCards, MyRandom.getRandom())));
+                    ret.add(new Reward(Aggregates.random(commmonCards, MyRandom.getRandom())));
                 }
                 //random rare from deck
                 List<PaperCard> rareCards = paperCardList.stream()
                         .filter(paperCard -> CardRarity.Rare.equals(paperCard.getRarity()) || CardRarity.MythicRare.equals(paperCard.getRarity()))
                         .collect(Collectors.toList());
                 if (!rareCards.isEmpty()) {
-                    ret.add(new Reward(Aggregates.random(rareCards)));
-                    ret.add(new Reward(Aggregates.random(rareCards)));
+                    ret.add(new Reward(Aggregates.random(rareCards, MyRandom.getRandom())));
+                    ret.add(new Reward(Aggregates.random(rareCards, MyRandom.getRandom())));
                 }
             }
             int val = ((MyRandom.getRandom().nextInt(2)+1)*100)+(MyRandom.getRandom().nextInt(101));

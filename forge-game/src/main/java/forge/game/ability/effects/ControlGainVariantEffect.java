@@ -56,7 +56,7 @@ public class ControlGainVariantEffect extends SpellAbilityEffect {
             }
         } else if ("Random".equals(controller)) {// Scrambleverse
             for (final Card c : tgtCards) {
-                final Player p = Aggregates.random(players);
+                final Player p = Aggregates.random(players, game.getRandom());
                 if (gainControl.containsKey(p)) {
                     gainControl.get(p).add(0, c);
                 } else {

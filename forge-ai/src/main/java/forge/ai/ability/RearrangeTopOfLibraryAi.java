@@ -59,7 +59,7 @@ public class RearrangeTopOfLibraryAi extends SpellAbilityAi {
 
             if (canTgtHuman && canTgtAI) {
                 // TODO: maybe some other consideration rather than random?
-                Player preferredTarget = MyRandom.percentTrue(50) ? aiPlayer : opp;
+                Player preferredTarget = MyRandom.percentTrue(50, aiPlayer.getGame().getRandom()) ? aiPlayer : opp;
                 sa.getTargets().add(preferredTarget);
             } else if (canTgtAI) {
                 sa.getTargets().add(aiPlayer);

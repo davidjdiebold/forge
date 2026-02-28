@@ -72,7 +72,7 @@ public class ChooseColorEffect extends SpellAbilityEffect {
             if (sa.hasParam("Random")) {
                 String choice;
                 for (int i=0; i<cntMin; i++) {
-                    choice = Aggregates.random(colorChoices);
+                    choice = Aggregates.random(colorChoices, card.getGame().getRandom());
                     colorChoices.remove(choice);
                     chosenColors.add(choice);
                 }

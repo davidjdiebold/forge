@@ -136,7 +136,7 @@ public final class QuestUtilCards {
             wastesCodes.add("OGW");
         }
 
-        String landCode = Aggregates.random(landCodes);
+        String landCode = Aggregates.random(landCodes, MyRandom.getRandom());
         if (null == landCode) {
             landCode = "M10";
         }
@@ -160,14 +160,14 @@ public final class QuestUtilCards {
 
 
         if (!snowLandCodes.isEmpty()) {
-            String snowLandCode = Aggregates.random(snowLandCodes);
+            String snowLandCode = Aggregates.random(snowLandCodes, MyRandom.getRandom());
             for (String landName : MagicColor.Constant.SNOW_LANDS) {
                 pool.add(db.getCard(landName, snowLandCode), nSnow);
             }
         }
 
         if (!wastesCodes.isEmpty()) {
-            String wasteCode = Aggregates.random(wastesCodes);
+            String wasteCode = Aggregates.random(wastesCodes, MyRandom.getRandom());
             pool.add(db.getCard("Wastes", wasteCode), 5);
         }
 
@@ -237,7 +237,7 @@ public final class QuestUtilCards {
 
         final Predicate<PaperCard> myFilter = applyFormatFilter(QuestUtilCards.RARE_PREDICATE);
 
-        final PaperCard card = Aggregates.random(Iterables.filter(pool, myFilter));
+        final PaperCard card = Aggregates.random(Iterables.filter(pool, myFilter), MyRandom.getRandom());
         addSingleCard(card, 1);
         return card;
     }

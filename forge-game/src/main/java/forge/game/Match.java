@@ -208,7 +208,7 @@ public class Match {
                 final Card card = Card.fromPaperCard(cp, player);
 
                 // Assign card-specific foiling or random foiling on approximately 1:20 cards if enabled
-                if (cp.isFoil() || (canRandomFoil && MyRandom.percentTrue(5))) {
+                if (cp.isFoil() || (canRandomFoil && MyRandom.percentTrue(5, player.getGame().getRandom()))) {
                     card.setRandomFoil();
                 }
 

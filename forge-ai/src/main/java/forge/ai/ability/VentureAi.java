@@ -56,10 +56,10 @@ public class VentureAi extends SpellAbilityAi {
 
         if (!viableRooms.isEmpty()) {
             // choose a room at random from the ones that are deemed playable
-            return Aggregates.random(viableRooms);
+            return Aggregates.random(viableRooms, player.getGame().getRandom());
         }
 
-        return Aggregates.random(spells); // If we're here, we should choose at least something, so choose a random thing then
+        return Aggregates.random(spells, player.getGame().getRandom()); // If we're here, we should choose at least something, so choose a random thing then
     }
 
 }

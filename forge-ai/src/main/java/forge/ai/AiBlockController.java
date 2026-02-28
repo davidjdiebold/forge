@@ -1380,7 +1380,7 @@ public class AiBlockController {
         boolean wantToTradeWithCreatInHand = !checkingOther && randomTradeIfCreatInHand
                 && ai.getZone(ZoneType.Hand).contains(CardPredicates.Presets.CREATURES)
                 && aiCreatureCount + maxCreatDiffWithRepl >= oppCreatureCount;
-        boolean wantToSavePlaneswalker = MyRandom.percentTrue(chanceToSavePW)
+        boolean wantToSavePlaneswalker = MyRandom.percentTrue(chanceToSavePW, ai.getGame().getRandom())
                 && combat.getDefenderByAttacker(attacker) instanceof Card
                 && ((Card) combat.getDefenderByAttacker(attacker)).isPlaneswalker();
         boolean wantToTradeDownToSavePW = chanceToTradeDownToSaveWalker > 0;
@@ -1388,7 +1388,7 @@ public class AiBlockController {
         return ((evalBlk <= evalAtk + 1) || (wantToSavePlaneswalker && wantToTradeDownToSavePW)) // "1" accounts for tapped.
                 && powerParityOrHigher
                 && (creatureParityOrAllowedDiff || wantToTradeWithCreatInHand)
-                && (MyRandom.percentTrue(chance) || wantToSavePlaneswalker);
+                && (MyRandom.percentTrue(chance, ai.getGame().getRandom()) || wantToSavePlaneswalker);
     }
 
     private boolean removeUnpayableBlocks(final Combat combat) {

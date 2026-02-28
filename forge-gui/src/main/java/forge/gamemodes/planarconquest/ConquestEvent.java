@@ -13,6 +13,7 @@ import forge.item.PaperCard;
 import forge.localinstance.properties.ForgeConstants;
 import forge.model.FModel;
 import forge.util.Aggregates;
+import forge.util.MyRandom;
 import forge.util.XmlReader;
 import forge.util.XmlWriter;
 import forge.util.XmlWriter.IXmlWritable;
@@ -59,7 +60,7 @@ public class ConquestEvent {
                 //if deck can't be loaded, generate it randomly
                 PaperCard commander = getAvatarCard();
                 if (commander == null) {
-                    commander = Aggregates.random(region.getCommanders());
+                    commander = Aggregates.random(region.getCommanders(), MyRandom.getRandom());
                 }
                 deck = ConquestUtil.generateDeck(commander, region.getCardPool(), true);
             }

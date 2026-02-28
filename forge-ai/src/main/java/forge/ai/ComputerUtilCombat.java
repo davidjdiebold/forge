@@ -44,7 +44,6 @@ import forge.game.staticability.StaticAbilityMustAttack;
 import forge.game.trigger.Trigger;
 import forge.game.trigger.TriggerType;
 import forge.game.zone.ZoneType;
-import forge.util.MyRandom;
 import forge.util.TextUtil;
 import forge.util.collect.FCollection;
 
@@ -458,9 +457,9 @@ public class ComputerUtilCombat {
             maxTreshold = ((PlayerControllerAi) ai.getController()).getAi().getIntProperty(AiProps.AI_IN_DANGER_MAX_THRESHOLD) - threshold;
         }
 
-        int chance = MyRandom.getRandom().nextInt(80) + 5;
+        int chance = ai.getGame().getRandom().nextInt(80) + 5;
         while (maxTreshold > 0) {
-            if (MyRandom.getRandom().nextInt(100) < chance) {
+            if (ai.getGame().getRandom().nextInt(100) < chance) {
                 threshold++;
             }
             maxTreshold--;

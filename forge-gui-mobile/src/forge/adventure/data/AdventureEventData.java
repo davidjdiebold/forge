@@ -81,7 +81,7 @@ public class AdventureEventData implements Serializable {
     public Deck[] getRewardPacks(int count) {
         Deck[] ret = new Deck[count];
         for (int i = 0; i < count; i++) {
-            ret[i] = AdventureEventController.instance().generateBooster(Aggregates.random(getCardBlock().getSets()).getCode());
+            ret[i] = AdventureEventController.instance().generateBooster(Aggregates.random(getCardBlock().getSets(), MyRandom.getRandom()).getCode());
         }
         return ret;
     }
@@ -382,7 +382,7 @@ public class AdventureEventData implements Serializable {
                 legalBlocks.removeIf(q -> q.getName().equals(restricted));
             }
         }
-        return legalBlocks.isEmpty() ? null : Aggregates.random(legalBlocks);
+        return legalBlocks.isEmpty() ? null : Aggregates.random(legalBlocks, MyRandom.getRandom());
     }
 
     private CardBlock pickJumpstartCardBlock() {
@@ -403,7 +403,7 @@ public class AdventureEventData implements Serializable {
                 legalBlocks.removeIf(q -> q.getName().equals(restricted));
             }
         }
-        return legalBlocks.isEmpty()?null:Aggregates.random(legalBlocks);
+        return legalBlocks.isEmpty()?null:Aggregates.random(legalBlocks, MyRandom.getRandom());
     }
 
 
@@ -416,7 +416,7 @@ public class AdventureEventData implements Serializable {
             if (i < selectedBlock.getNumberSets())
                 ret[i] = selectedBlock.getSets().get(i).getCode();
             else
-                ret[i] = Aggregates.random(selectedBlock.getSets()).getCode();
+                ret[i] = Aggregates.random(selectedBlock.getSets(), MyRandom.getRandom()).getCode();
         }
         MyRandom.setRandom(placeholder);
         return ret;
@@ -645,7 +645,7 @@ public class AdventureEventData implements Serializable {
                 EnemyData data = WorldData.getEnemy(enemyDataName);
                 if (data == null){
                     //enemyDataName was not found, replace with something valid.
-                    enemyDataName = Aggregates.random(WorldData.getAllEnemies()).getName();
+                    enemyDataName = Aggregates.random(WorldData.getAllEnemies(), MyRandom.getRandom()).getName();
                 }
                 sprite = new EnemySprite(WorldData.getEnemy(enemyDataName));
             }

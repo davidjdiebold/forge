@@ -110,7 +110,7 @@ public class ChangeTargetsEffect extends SpellAbilityEffect {
                                 return;
                             }
                             changingTgtSA.resetTargets();
-                            GameEntity choice = Aggregates.random(candidates);
+                            GameEntity choice = Aggregates.random(candidates, activator.getGame().getRandom());
                             changingTgtSA.getTargets().add(choice);
                             if (changingTgtSA.isDividedAsYouChoose()) {
                                 changingTgtSA.addDividedAllocation(choice, div);

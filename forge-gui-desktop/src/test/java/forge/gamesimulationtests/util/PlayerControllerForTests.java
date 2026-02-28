@@ -492,12 +492,12 @@ public class PlayerControllerForTests extends PlayerController {
 
     @Override
     public PlanarDice choosePDRollToIgnore(List<PlanarDice> rolls) {
-        return Aggregates.random(rolls);
+        return Aggregates.random(rolls, MyRandom.getRandom());
     }
 
     @Override
     public Integer chooseRollToIgnore(List<Integer> rolls) {
-        return Aggregates.random(rolls);
+        return Aggregates.random(rolls, MyRandom.getRandom());
     }
 
     @Override
@@ -520,7 +520,7 @@ public class PlayerControllerForTests extends PlayerController {
         if (options.size() <= 1) {
             return Iterables.getFirst(options, null);
         }
-        return Aggregates.random(options);
+        return Aggregates.random(options, MyRandom.getRandom());
     }
 
     @Override

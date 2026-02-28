@@ -175,7 +175,7 @@ public class ChooseTypeAi extends SpellAbilityAi {
             boolean allChangeling = false;
             for (Card c : cards) {
                 if (c.isCreature() && c.hasKeyword(Keyword.CHANGELING)) {
-                    chosenType = Aggregates.random(valid); // just choose a random type for changelings
+                    chosenType = Aggregates.random(valid, c.getGame().getRandom()); // just choose a random type for changelings
                     allChangeling = true;
                     break;
                 }

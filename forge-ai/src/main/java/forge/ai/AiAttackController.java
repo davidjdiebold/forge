@@ -217,7 +217,7 @@ public class AiAttackController {
             // TODO should we cache the random for each turn? some functions like shouldPumpCard base their decisions on the assumption who will be attacked
 
             //Otherwise choose a random opponent to ensure no ganging up on players
-            return Aggregates.random(opps);
+            return Aggregates.random(opps, ai.getGame().getRandom());
         }
         return defender;
     }
@@ -842,7 +842,7 @@ public class AiAttackController {
         if (this.attackers.isEmpty() && ai.getOpponents().size() > 1) {
             final PlayerCollection opps = ai.getOpponents();
             opps.remove(defendingOpponent);
-            defendingOpponent = Aggregates.random(opps);
+            defendingOpponent = Aggregates.random(opps, ai.getGame().getRandom());
             refreshCombatants(defendingOpponent);
         }
 
@@ -1246,15 +1246,15 @@ public class AiAttackController {
         if (ratioDiff > 0 && doAttritionalAttack) {
             aiAggression = 5; // attack at all costs
         } else if ((ratioDiff >= 1 && this.attackers.size() > 1 && (humanLifeToDamageRatio < 2 || outNumber > 0))
-        		|| (playAggro && MyRandom.percentTrue(chanceToAttackToTrade) && humanLifeToDamageRatio > 1)) {
+        		|| (playAggro && MyRandom.percentTrue(chanceToAttackToTrade, ai.getGame().getRandom()) && humanLifeToDamageRatio > 1)) {
             aiAggression = 4; // attack expecting to trade or damage player.
-        } else if (MyRandom.percentTrue(chanceToAttackToTrade) && humanLifeToDamageRatio > 1
+        } else if (MyRandom.percentTrue(chanceToAttackToTrade, ai.getGame().getRandom()) && humanLifeToDamageRatio > 1
                 && defendingOpponent != null
                 && ComputerUtil.countUsefulCreatures(ai) > ComputerUtil.countUsefulCreatures(defendingOpponent)
                 && ai.getLife() > defendingOpponent.getLife()
                 && !ComputerUtilCombat.lifeInDanger(ai, combat) // this isn't really doing anything unless the attacking player in combat isn't the AI (which currently isn't used like that)
                 && (ComputerUtilMana.getAvailableManaEstimate(ai) > 0) || tradeIfTappedOut
-                && (ComputerUtilMana.getAvailableManaEstimate(defendingOpponent) == 0) || MyRandom.percentTrue(extraChanceIfOppHasMana)
+                && (ComputerUtilMana.getAvailableManaEstimate(defendingOpponent) == 0) || MyRandom.percentTrue(extraChanceIfOppHasMana, ai.getGame().getRandom())
                 && (!tradeIfLowerLifePressure || (ai.getLifeLostLastTurn() + ai.getLifeLostThisTurn() <
                         defendingOpponent.getLifeLostThisTurn() + defendingOpponent.getLifeLostThisTurn()))) {
             aiAggression = 4; // random (chance-based) attack expecting to trade or damage player.

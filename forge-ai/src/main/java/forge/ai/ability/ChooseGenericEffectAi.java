@@ -86,7 +86,7 @@ public class ChooseGenericEffectAi extends SpellAbilityAi {
         if (logic == null) {
             return spells.get(0);
         } else if ("Random".equals(logic)) {
-            return Aggregates.random(spells);
+            return Aggregates.random(spells, game.getRandom());
         } else if ("Phasing".equals(logic)) { // Teferi's Realm : keep aggressive
             List<SpellAbility> filtered = Lists.newArrayList(Iterables.filter(spells, new Predicate<SpellAbility>() {
                 @Override
@@ -94,7 +94,7 @@ public class ChooseGenericEffectAi extends SpellAbilityAi {
                     return !sp.getDescription().contains("Creature") && !sp.getDescription().contains("Land");
                 }
             }));
-            return Aggregates.random(filtered);
+            return Aggregates.random(filtered, game.getRandom());
         } else if ("PayUnlessCost".equals(logic)) {
             for (final SpellAbility sp : spells) {
                 String unlessCost = sp.getParam("UnlessCost");
@@ -180,7 +180,7 @@ public class ChooseGenericEffectAi extends SpellAbilityAi {
             // TODO If combat is poor, Skip Combat
             // Todo if hand is empty or mostly empty, skip main phase
             // Todo if hand has gas, skip draw
-            return Aggregates.random(spells);
+            return Aggregates.random(spells, game.getRandom());
         } else if ("SinProdder".equals(logic)) {
             SpellAbility allow = null, deny = null;
             for (final SpellAbility sp : spells) {
@@ -246,7 +246,7 @@ public class ChooseGenericEffectAi extends SpellAbilityAi {
                 return deny;
             }
             // if unsure, random?
-            return Aggregates.random(spells);
+            return Aggregates.random(spells, game.getRandom());
         } else if ("CombustibleGearhulk".equals(logic)) {
             Player controller = sa.getActivatingPlayer();
             List<ZoneType> zones = ZoneType.listValueOf("Graveyard, Battlefield, Exile");
@@ -266,7 +266,7 @@ public class ChooseGenericEffectAi extends SpellAbilityAi {
             int bestGuessDamage = totalCMC * 3 / revealedCards.size();
             return life <= bestGuessDamage ? spells.get(0) : spells.get(1);
         }  else if ("SoulEcho".equals(logic)) {
-            return sa.getHostCard().getController().getLife() < 10 ? spells.get(0) : Aggregates.random(spells);
+            return sa.getHostCard().getController().getLife() < 10 ? spells.get(0) : Aggregates.random(spells, game.getRandom());
         } else if ("Pump".equals(logic) || "BestOption".equals(logic)) {
             List<SpellAbility> filtered = Lists.newArrayList();
             // filter first for the spells which can be done

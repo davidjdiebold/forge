@@ -14,6 +14,7 @@ import forge.deck.DeckSection;
 import forge.game.player.RegisteredPlayer;
 import forge.util.Aggregates;
 import forge.util.Localizer;
+import forge.util.MyRandom;
 
 public enum GameType {
 
@@ -45,7 +46,7 @@ public enum GameType {
         public Deck apply(RegisteredPlayer player) {
             Deck deck = new Deck();
             CardPool mainDeck = deck.getMain();
-            String setcode = Aggregates.random(StaticData.instance().getBlockLands());
+            String setcode = Aggregates.random(StaticData.instance().getBlockLands(), MyRandom.getRandom());
             mainDeck.add("Plains", setcode, 12, true);
             mainDeck.add("Island", setcode, 12, true);
             mainDeck.add("Swamp", setcode, 12, true);
@@ -61,7 +62,7 @@ public enum GameType {
         public Deck apply(RegisteredPlayer player) {
             Deck deck = new Deck();
             CardPool mainDeck = deck.getMain();
-            String setcode = Aggregates.random(StaticData.instance().getBlockLands());
+            String setcode = Aggregates.random(StaticData.instance().getBlockLands(), MyRandom.getRandom());
             mainDeck.add("Plains", setcode, 12, true);
             mainDeck.add("Island", setcode, 12, true);
             mainDeck.add("Swamp", setcode, 12, true);

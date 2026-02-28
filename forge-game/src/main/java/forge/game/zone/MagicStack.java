@@ -53,10 +53,7 @@ import forge.game.event.GameEventSpellResolved;
 import forge.game.event.GameEventZone;
 import forge.game.keyword.Keyword;
 import forge.game.player.Player;
-import forge.game.spellability.AbilityStatic;
-import forge.game.spellability.SpellAbility;
-import forge.game.spellability.SpellAbilityStackInstance;
-import forge.game.spellability.TargetChoices;
+import forge.game.spellability.*;
 import forge.game.trigger.Trigger;
 import forge.game.trigger.TriggerType;
 import forge.util.TextUtil;
@@ -489,6 +486,9 @@ public class MagicStack /* extends MyObservable */ implements Iterable<SpellAbil
         }
         game.updateStackForView();
         game.fireEvent(new GameEventSpellAbilityCast(sp, si, stackIndex, false));
+        if (sp instanceof Spell) {
+            game.addCardPlayedEvent(sp.getActivatingPlayer(), sp.getHostCard().getName());
+        }
         return si;
     }
 

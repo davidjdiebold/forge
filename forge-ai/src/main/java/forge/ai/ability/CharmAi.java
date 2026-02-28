@@ -250,7 +250,7 @@ public class CharmAi extends SpellAbilityAi {
 
     @Override
     public Player chooseSinglePlayer(Player ai, SpellAbility sa, Iterable<Player> opponents, Map<String, Object> params) {
-        return Aggregates.random(opponents);
+        return Aggregates.random(opponents, ai.getGame().getRandom());
     }
 
     @Override

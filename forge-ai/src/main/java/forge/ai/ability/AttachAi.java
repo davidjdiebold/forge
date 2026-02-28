@@ -225,10 +225,10 @@ public class AttachAi extends SpellAbilityAi {
         boolean willDiscardNow = game.getPhaseHandler().is(PhaseType.END_OF_TURN, ai)
                 && !ai.isUnlimitedHandSize() && ai.getCardsIn(ZoneType.Hand).size() > ai.getMaxHandSize();
         boolean willDieNow = combat != null && ComputerUtilCombat.lifeInSeriousDanger(ai, combat);
-        boolean willRespondToStack = canRespondToStack && MyRandom.percentTrue(chanceToRespondToStack);
-        boolean willCastEarly = MyRandom.percentTrue(chanceToCastEarly);
+        boolean willRespondToStack = canRespondToStack && MyRandom.percentTrue(chanceToRespondToStack, ai.getGame().getRandom());
+        boolean willCastEarly = MyRandom.percentTrue(chanceToCastEarly, ai.getGame().getRandom());
         boolean willCastAtEOT = game.getPhaseHandler().is(PhaseType.END_OF_TURN)
-                && game.getPhaseHandler().getNextTurn().equals(ai) && MyRandom.percentTrue(chanceToCastAtEOT);
+                && game.getPhaseHandler().getNextTurn().equals(ai) && MyRandom.percentTrue(chanceToCastAtEOT, ai.getGame().getRandom());
 
         boolean alternativeConsiderations = hasFloatMana || willDiscardNow || willDieNow || willRespondToStack || willCastAtEOT || willCastEarly;
 
@@ -1361,7 +1361,8 @@ public class AttachAi extends SpellAbilityAi {
                     return !card.hasCardAttachments();
                 }
             });
-            return preferred.isEmpty() ? Aggregates.random(list) : Aggregates.random(preferred);
+            return preferred.isEmpty() ? Aggregates.random(list, aiPlayer.getGame().getRandom()) :
+                    Aggregates.random(preferred, aiPlayer.getGame().getRandom());
         }
 
         // Don't fortify if already fortifying

@@ -1179,7 +1179,7 @@ public class ChangeZoneEffect extends SpellAbilityEffect {
                         if (shouldReveal && delayedReveal != null) {
                             decider.getController().reveal(delayedReveal.getCards(), delayedReveal.getZone(), delayedReveal.getOwner(), delayedReveal.getMessagePrefix());
                         }
-                        c = Aggregates.random(fetchList);
+                        c = Aggregates.random(fetchList, game.getRandom());
                     } else if (defined && !chooseFromDef) {
                         c = Iterables.getFirst(fetchList, null);
                     } else {

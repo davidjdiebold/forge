@@ -44,7 +44,7 @@ public class CopySpellAbilityAi extends SpellAbilityAi {
             chance = 100; // currently the AI will always copy the opponent's spell if viable
         }
 
-        if (!MyRandom.percentTrue(chance)
+        if (!MyRandom.percentTrue(chance, aiPlayer.getGame().getRandom())
                 && !"AlwaysIfViable".equals(logic)
                 && !"OnceIfViable".equals(logic)
                 && !"AlwaysCopyActivatedAbilities".equals(logic)) {

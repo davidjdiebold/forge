@@ -1396,7 +1396,7 @@ public class ChangeZoneAi extends SpellAbilityAi {
                 loyaltyDiff = aic.getIntProperty(AiProps.BLINK_RELOAD_PLANESWALKER_LOYALTY_DIFF);
                 chance = aic.getIntProperty(AiProps.BLINK_RELOAD_PLANESWALKER_CHANCE);
             }
-            if (MyRandom.percentTrue(chance)) {
+            if (MyRandom.percentTrue(chance, ai.getGame().getRandom())) {
                 aiPlaneswalkers.sort(CardPredicates.compareByCounterType(CounterEnumType.LOYALTY));
                 for (Card pw : aiPlaneswalkers) {
                     int curLoyalty = pw.getCounters(CounterEnumType.LOYALTY);
@@ -1756,7 +1756,7 @@ public class ChangeZoneAi extends SpellAbilityAi {
                             loyaltyDiff = aic.getIntProperty(AiProps.BLINK_RELOAD_PLANESWALKER_LOYALTY_DIFF);
                             chance = aic.getIntProperty(AiProps.BLINK_RELOAD_PLANESWALKER_CHANCE);
                         }
-                        if (MyRandom.percentTrue(chance)) {
+                        if (MyRandom.percentTrue(chance, card.getGame().getRandom())) {
                             int curLoyalty = card.getCounters(CounterEnumType.LOYALTY);
                             int freshLoyalty = Integer.valueOf(card.getCurrentState().getBaseLoyalty());
                             if (freshLoyalty - curLoyalty >= loyaltyDiff && curLoyalty <= maxLoyaltyToConsider) {
@@ -2073,12 +2073,12 @@ public class ChangeZoneAi extends SpellAbilityAi {
             CardCollection preferredOppList = CardLists.filter(preferredList, CardPredicates.isControlledByAnyOf(aiPlayer.getOpponents()));
 
             if (!preferredOppList.isEmpty()) {
-                return Aggregates.random(preferredOppList);
+                return Aggregates.random(preferredOppList, aiPlayer.getGame().getRandom());
             } else if (!preferredList.isEmpty()) {
-                return Aggregates.random(preferredList);
+                return Aggregates.random(preferredList, aiPlayer.getGame().getRandom());
             }
 
-            return Aggregates.random(fetchList);
+            return Aggregates.random(fetchList, aiPlayer.getGame().getRandom());
         }
 
         CardCollection preferredList = CardLists.filter(fetchList, new Predicate<Card>() {
@@ -2101,12 +2101,12 @@ public class ChangeZoneAi extends SpellAbilityAi {
 
         if (!preferredList.isEmpty()) {
             if (isRandomChoice) {
-                return Aggregates.random(preferredList);
+                return Aggregates.random(preferredList, aiPlayer.getGame().getRandom());
             }
             return isWorstChoice ? ComputerUtilCard.getWorstAI(preferredList) : ComputerUtilCard.getBestAI(preferredList);
         } else {
             if (isRandomChoice) {
-                return Aggregates.random(preferredList);
+                return Aggregates.random(preferredList, aiPlayer.getGame().getRandom());
             }
             return isWorstChoice ? ComputerUtilCard.getWorstAI(fetchList) : ComputerUtilCard.getBestAI(fetchList);
         }

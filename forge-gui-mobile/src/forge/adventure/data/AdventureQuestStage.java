@@ -9,6 +9,7 @@ import forge.adventure.util.AdventureQuestEvent;
 import forge.adventure.util.AdventureQuestEventType;
 import forge.adventure.util.Current;
 import forge.util.Aggregates;
+import forge.util.MyRandom;
 
 import java.io.Serializable;
 import java.util.*;
@@ -129,7 +130,7 @@ public class AdventureQuestStage implements Serializable {
                 if (count1 != 0 || count2 != 0) {
                     System.out.println("Quest '" + questName + "' -  Stage '" + this.name + "' has invalid count1 ('" + count1 + "') and/or count2 ('" + count2 + "') value");
                 }
-                setTargetPOI(Aggregates.random(validPOIs));
+                setTargetPOI(Aggregates.random(validPOIs, MyRandom.getRandom()));
             }
         }
         //"else" any POI matching all the POITags is valid, evaluate as needed

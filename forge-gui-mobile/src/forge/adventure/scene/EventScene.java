@@ -526,7 +526,7 @@ public class EventScene extends MenuScene implements IAfterMatch {
                 continue;
             } else {
                 //Todo: Actually run match simulation here
-                if(MyRandom.percentTrue(50)){
+                if(MyRandom.percentTrue(50, MyRandom.getRandom())){
                     match.p1.wins++;
                     match.p2.losses++;
                     match.winner = match.p1;

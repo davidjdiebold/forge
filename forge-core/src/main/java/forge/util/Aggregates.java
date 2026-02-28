@@ -1,10 +1,6 @@
 package forge.util;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import com.google.common.base.Function;
@@ -101,7 +97,7 @@ public class Aggregates {
      *            the source
      * @return the t
      */
-    public static final <T> T random(final Iterable<T> source) {
+    public static final <T> T random(final Iterable<T> source, Random random) {
         if (source == null) { return null; }
 
         if (source instanceof List<?>) {
@@ -110,7 +106,7 @@ public class Aggregates {
             switch(len) {
                 case 0: return null;
                 case 1: return src.get(0);
-                default: return src.get(MyRandom.getRandom().nextInt(len));
+                default: return src.get(random.nextInt(len));
             }
         }
 

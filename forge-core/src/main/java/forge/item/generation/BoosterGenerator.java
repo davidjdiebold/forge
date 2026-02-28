@@ -182,7 +182,7 @@ public class BoosterGenerator {
             // Default, if no matching slot type is found : equal chance for each slot
             // should not have effect unless new sets that do not match existing
             // rarities are added
-            foilSlot = Aggregates.random(template.getSlots()).getLeft().split("[ :!]")[0];
+            foilSlot = Aggregates.random(template.getSlots(), MyRandom.getRandom()).getLeft().split("[ :!]")[0];
 
             switch (foilCard) {
                 case Rare:
@@ -451,7 +451,7 @@ public class BoosterGenerator {
             }
 
             if (!possibleCards.isEmpty()) {
-                PaperCard toAdd = Aggregates.random(possibleCards);
+                PaperCard toAdd = Aggregates.random(possibleCards, MyRandom.getRandom());
                 BoosterGenerator.replaceCard(result, toAdd);
             }
         }

@@ -580,19 +580,19 @@ public class PlayerControllerAi extends PlayerController {
 
     @Override
     public String chooseSector(Card assignee, String ai, List<String> sectors) {
-        return Aggregates.random(sectors);
+        return Aggregates.random(sectors, player.getGame().getRandom());
     }
 
     @Override
     public PlanarDice choosePDRollToIgnore(List<PlanarDice> rolls) {
         //TODO create AI logic for this
-        return Aggregates.random(rolls);
+        return Aggregates.random(rolls, player.getGame().getRandom());
     }
 
     @Override
     public Integer chooseRollToIgnore(List<Integer> rolls) {
         //TODO create AI logic for this
-        return Aggregates.random(rolls);
+        return Aggregates.random(rolls, player.getGame().getRandom());
     }
 
     @Override
@@ -965,9 +965,9 @@ public class PlayerControllerAi extends PlayerController {
             }
         }
         if (!possible.isEmpty()) {
-            return Aggregates.random(possible);
+            return Aggregates.random(possible, player.getGame().getRandom());
         } else {
-            return Aggregates.random(options); // if worst comes to worst, at least do something
+            return Aggregates.random(options, player.getGame().getRandom()); // if worst comes to worst, at least do something
         }
     }
 
@@ -1300,7 +1300,7 @@ public class PlayerControllerAi extends PlayerController {
                 Card bestCreature = ComputerUtilCard.getBestCreatureAI(aiLibrary);
                 name = bestCreature != null ? bestCreature.getName() : "";
             } else if (logic.equals("RandomInComputerDeck")) {
-                name = aiLibrary.isEmpty() ? "" : Aggregates.random(aiLibrary).getName();
+                name = aiLibrary.isEmpty() ? "" : Aggregates.random(aiLibrary, player.getGame().getRandom()).getName();
             } else if (logic.equals("MostProminentSpellInComputerDeck")) {
                 CardCollectionView cards = CardLists.getValidCards(aiLibrary, "Card.Instant,Card.Sorcery", player, sa.getHostCard(), sa);
                 name = ComputerUtilCard.getMostProminentCardName(cards);

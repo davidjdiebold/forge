@@ -62,7 +62,7 @@ public class WinstonDraft extends BoosterDraft {
 
         draftAI.setDraft(this);
 
-        if (MyRandom.percentTrue(50)) {
+        if (MyRandom.percentTrue(50, MyRandom.getRandom())) {
             // 50% chance of the AI picking the first card in a Winston Draft
             //this.computerChoose();
         }

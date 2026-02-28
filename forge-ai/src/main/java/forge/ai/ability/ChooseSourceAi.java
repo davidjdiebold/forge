@@ -150,9 +150,9 @@ public class ChooseSourceAi extends SpellAbilityAi {
                 if (!oppCreatures.isEmpty()) {
                     return ComputerUtilCard.getBestCreatureAI(oppCreatures);
                 } else if (!aiNonCreatures.isEmpty()) {
-                    return Aggregates.random(aiNonCreatures);
+                    return Aggregates.random(aiNonCreatures, ai.getGame().getRandom());
                 } else {
-                    return Aggregates.random(options);
+                    return Aggregates.random(options, ai.getGame().getRandom());
                 }
             } else if (!game.getStack().isEmpty()) {
                 // No permanent for the AI to choose. Should normally not happen unless using dev mode or something,

@@ -10,6 +10,7 @@ import forge.toolbox.FButton;
 import forge.toolbox.FEvent;
 import forge.toolbox.FEvent.FEventHandler;
 import forge.util.Aggregates;
+import forge.util.MyRandom;
 import forge.util.Utils;
 
 public class FVanguardChooser extends FScreen {
@@ -67,10 +68,10 @@ public class FVanguardChooser extends FScreen {
         if (lstVanguards.getItemCount() == 0) { return; }
 
         if (isAi) {
-            lstVanguards.setSelectedItem(Aggregates.random(nonRandomAiAvatars).getKey());
+            lstVanguards.setSelectedItem(Aggregates.random(nonRandomAiAvatars, MyRandom.getRandom()).getKey());
         }
         else {
-            lstVanguards.setSelectedItem(Aggregates.random(nonRandomHumanAvatars).getKey());
+            lstVanguards.setSelectedItem(Aggregates.random(nonRandomHumanAvatars, MyRandom.getRandom()).getKey());
         }
     }
 

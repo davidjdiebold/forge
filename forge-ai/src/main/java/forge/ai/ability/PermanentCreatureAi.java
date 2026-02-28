@@ -184,18 +184,18 @@ public class PermanentCreatureAi extends PermanentAi {
         } else if (wantToCastInMain1) {
             // Would rather cast it in Main 1 or as soon as possible anyway, so go for it
             return isMyMain1OrLater;
-        } else if (hasAmbushAI && MyRandom.percentTrue(chanceToObeyAmbushAI)) {
+        } else if (hasAmbushAI && MyRandom.percentTrue(chanceToObeyAmbushAI, ai.getGame().getRandom())) {
             // Is an ambusher, so try to hold for declare blockers in combat where the AI defends, if possible
             return defOnlyAmbushAI && canCastAtOppTurn ? isOppDeclareAttackers : (isOppDeclareAttackers || isMyDeclareBlockers);
-        } else if (valuableBlocker && isOppDeclareAttackers && MyRandom.percentTrue(chanceToAddBlocker)) {
+        } else if (valuableBlocker && isOppDeclareAttackers && MyRandom.percentTrue(chanceToAddBlocker, ai.getGame().getRandom())) {
             // Might serve as a valuable blocker in a combat where we are behind on untapped blockers
             return true;
-        } else if (hasETBTrigger && MyRandom.percentTrue(chanceToCastForETB)) {
+        } else if (hasETBTrigger && MyRandom.percentTrue(chanceToCastForETB, ai.getGame().getRandom())) {
             // Instant speed is good when a card has an ETB trigger, but prolly don't cast in own turn before Main 1 not
             // to mana lock the AI or lose the chance to consider other options. Try to utilize it as a response to stack
             // if possible.
-            return isMyMain1OrLater || isOppTurn || MyRandom.percentTrue(chanceToProcETBBeforeMain1);
-        } else if (hasETBTrigger && canRespondToStack && MyRandom.percentTrue(chanceToRespondToStack)) {
+            return isMyMain1OrLater || isOppTurn || MyRandom.percentTrue(chanceToProcETBBeforeMain1, ai.getGame().getRandom());
+        } else if (hasETBTrigger && canRespondToStack && MyRandom.percentTrue(chanceToRespondToStack, ai.getGame().getRandom())) {
             // Try to do something meaningful in response to an opposing effect on stack. Note that this is currently
             // too random to likely be meaningful, serious improvement might be needed.
             return canCastAtOppTurn || ph.getPlayerTurn().equals(ai);

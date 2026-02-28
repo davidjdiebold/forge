@@ -181,7 +181,7 @@ public class ConquestAEtherScreen extends FScreen {
             break;
         }
 
-        PaperCard card = Aggregates.random(rewardPool);
+        PaperCard card = Aggregates.random(rewardPool, MyRandom.getRandom());
         if (card == null) { return; } //shouldn't happen, but prevent crash if it does
 
         pool.remove(card);

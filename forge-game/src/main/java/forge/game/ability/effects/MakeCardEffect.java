@@ -84,7 +84,10 @@ public class MakeCardEffect extends SpellAbilityEffect {
                         throw new RuntimeException("MakeCardEffect didn't find card face by name: " + s);
                 }
             } else if (sa.hasParam("Booster")) {
-                SealedProduct.Template booster = Aggregates.random(StaticData.instance().getBoosters());
+                SealedProduct.Template booster = Aggregates.random(
+                        StaticData.instance().getBoosters(),
+                        game.getRandom()
+                );
                 pack = new BoosterPack(booster.getEdition(), booster).getCards();
                 for (PaperCard pc : pack) {
                     ICardFace face = pc.getRules().getMainPart();
@@ -101,7 +104,7 @@ public class MakeCardEffect extends SpellAbilityEffect {
                 while (i > 0) {
                     String chosen;
                     if (sa.hasParam("AtRandom")) {
-                        chosen = Aggregates.random(faces).getName();
+                        chosen = Aggregates.random(faces, game.getRandom()).getName();
                     } else {
                         String sbName = sa.hasParam("SpellbookName") ? sa.getParam("SpellbookName") :
                                 CardTranslation.getTranslatedName(source.getName());

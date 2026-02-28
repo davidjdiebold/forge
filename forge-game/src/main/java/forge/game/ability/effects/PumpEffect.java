@@ -410,7 +410,7 @@ public class PumpEffect extends SpellAbilityEffect {
             }
             final int min = Math.min(total.size(), numkw);
             for (int i = 0; i < min; i++) {
-                final String random = Aggregates.random(total);
+                final String random = Aggregates.random(total, game.getRandom());
                 choice.add(random);
                 total.remove(random);
             }

@@ -90,7 +90,7 @@ public class MultiplePilesEffect extends SpellAbilityEffect {
         }
         if (randomChosen) {
             for (Entry<Player, List<CardCollectionView>> ev : record.entrySet()) {
-                CardCollectionView chosen = Aggregates.random(ev.getValue());
+                CardCollectionView chosen = Aggregates.random(ev.getValue(), ev.getKey().getGame().getRandom());
                 source.addRemembered(chosen);
             }
 

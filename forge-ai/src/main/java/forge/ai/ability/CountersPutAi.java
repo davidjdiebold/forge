@@ -872,13 +872,13 @@ public class CountersPutAi extends CountersAi {
                     if (preferred) {
                         choice = chooseCursedTarget(list, type, amount, ai);
                         if (choice == null && mandatory) {
-                            choice = Aggregates.random(list);
+                            choice = Aggregates.random(list, ai.getGame().getRandom());
                         }
                     } else {
                         if (type.equals("M1M1")) {
                             choice = ComputerUtilCard.getWorstCreatureAI(list);
                         } else {
-                            choice = Aggregates.random(list);
+                            choice = Aggregates.random(list, ai.getGame().getRandom());
                         }
                     }
                 } else {
@@ -886,13 +886,13 @@ public class CountersPutAi extends CountersAi {
                         list = ComputerUtil.getSafeTargets(ai, sa, list);
                         choice = chooseBoonTarget(list, type);
                         if (choice == null && mandatory) {
-                            choice = Aggregates.random(list);
+                            choice = Aggregates.random(list, ai.getGame().getRandom());
                         }
                     } else {
                         if (type.equals("P1P1")) {
                             choice = ComputerUtilCard.getWorstCreatureAI(list);
                         } else {
-                            choice = Aggregates.random(list);
+                            choice = Aggregates.random(list, ai.getGame().getRandom());
                         }
                     }
                 }

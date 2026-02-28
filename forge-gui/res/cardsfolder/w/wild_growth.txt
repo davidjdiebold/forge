@@ -2,8 +2,10 @@ Name:Wild Growth
 ManaCost:G
 Types:Enchantment Aura
 K:Enchant land
-A:SP$ Attach | Cost$ G | ValidTgts$ Land | AILogic$ Pump
-T:Mode$ TapsForMana | ValidCard$ Card.AttachedBy | Execute$ TrigMana | Static$ True | TriggerDescription$ Whenever enchanted land is tapped for mana, its controller adds an additional {G}.
-SVar:TrigMana:DB$ Mana | Produced$ G | Amount$ 1 | Defined$ TriggeredCardController
-AI:RemoveDeck:All
-Oracle:Enchant land\nWhenever enchanted land is tapped for mana, its controller adds an additional {G}.
+A:SP$ Attach | Cost$ 2 G | ValidTgts$ Land | AILogic$ Pump
+T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ DBGainLife | TriggerDescription$ When CARDNAME enters the battlefield, you gain 0 life.
+SVar:DBGainLife:DB$ GainLife | Defined$ You | LifeAmount$ 0
+S:Mode$ Continuous | Affected$ Card.EnchantedBy | AddAbility$ AbundantGrowthTap | Description$ Enchanted land has "{T}: Add GG."
+SVar:AbundantGrowthTap:AB$ Mana | Cost$ T | Produced$ G G | SpellDescription$ Add G G.
+DeckHas:Ability$LifeGain
+Oracle:Enchant land\nEnchanted land has "{T}: Add GG."

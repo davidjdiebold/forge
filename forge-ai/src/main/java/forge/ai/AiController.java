@@ -22,7 +22,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.sun.org.apache.xalan.internal.xsltc.runtime.InternalRuntimeError;
 import forge.ai.ability.ChangeZoneAi;
 import forge.ai.ability.LearnAi;
 import forge.ai.simulation.SpellAbilityPicker;
@@ -66,7 +65,6 @@ import forge.util.ComparatorUtil;
 import forge.util.Expressions;
 import forge.util.MyRandom;
 import forge.util.collect.FCollectionView;
-import io.sentry.Breadcrumb;
 import io.sentry.Sentry;
 
 import java.util.Collections;
@@ -878,7 +876,7 @@ public class AiController {
         // TODO before suspending some spells try to predict if relevant targets can be expected
         if (sa.getApi() != null) {
 
-            String msg = "AiController:canPlaySa: AI checks for if can PlaySa";
+            /**String msg = "AiController:canPlaySa: AI checks for if can PlaySa";
             Breadcrumb bread = new Breadcrumb(msg);
             bread.setData("Api", sa.getApi().toString());
             bread.setData("Card", card.getName());
@@ -887,13 +885,15 @@ public class AiController {
 
             // add Extra for debugging
             Sentry.setExtra("Card", card.getName());
-            Sentry.setExtra("SA", sa.toString());
+            Sentry.setExtra("SA", sa.toString());**/
 
             boolean canPlay = SpellApiToAi.Converter.get(sa.getApi()).canPlayAIWithSubs(player, sa);
 
+            /**
             // remove added extra
             Sentry.removeExtra("Card");
             Sentry.removeExtra("SA");
+             **/
 
             if (!canPlay) {
                 return AiPlayDecision.CantPlayAi;

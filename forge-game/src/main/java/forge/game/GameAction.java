@@ -17,12 +17,6 @@
  */
 package forge.game;
 
-import java.util.*;
-
-import forge.util.*;
-
-import org.apache.commons.lang3.tuple.ImmutablePair;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 
@@ -36,7 +30,6 @@ import forge.game.card.*;
 import forge.game.event.*;
 import forge.game.keyword.Keyword;
 import forge.game.keyword.KeywordInterface;
-import forge.game.mulligan.MulliganService;
 import forge.game.player.GameLossReason;
 import forge.game.player.Player;
 import forge.game.player.PlayerActionConfirmMode;
@@ -2112,10 +2105,10 @@ public class GameAction {
             }
             game.setStartingHands(startingHands);
 
-            // Choose starting hand for each player with multiple hands
-            if (game.getRules().getGameType() != GameType.Puzzle) {
-                new MulliganService(first).perform();
-            }
+            // HACK Disable Mulligan
+            // if (game.getRules().getGameType() != GameType.Puzzle) {
+            //     new MulliganService(first).perform();
+            // }
             if (game.isGameOver()) { break; } // conceded during "mulligan" prompt
 
             game.setAge(GameStage.Play);

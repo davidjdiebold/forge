@@ -17,16 +17,9 @@
  */
 package forge.game;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.commons.lang3.tuple.Pair;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -131,6 +124,8 @@ public class Game {
 
     private final GameView view;
     private final Tracker tracker = new Tracker();
+
+    public Random rng = MyRandom.getRandom();
 
     /**
      * Gets the id.
@@ -633,6 +628,10 @@ public class Game {
 
     public void setStartingHands(List<List<Card>> startingHands) {
         _startingHands = startingHands;
+    }
+
+    public Random getRandom() {
+        return rng;
     }
 
     private static class CardStateVisitor extends Visitor<Card> {

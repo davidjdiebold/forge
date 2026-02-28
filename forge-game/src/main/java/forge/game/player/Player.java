@@ -1686,8 +1686,7 @@ public class Player extends GameEntity implements Comparable<Player> {
     public final void shuffle(final SpellAbility sa) {
         final CardCollection list = new CardCollection(getCardsIn(ZoneType.Library));
 
-        // Note: Shuffling once is sufficient.
-        Collections.shuffle(list, MyRandom.getRandom());
+        ShuffleUtil.shuffle(list, iDrawn, drawSchedule, getGame().getRandom());
 
         getZone(ZoneType.Library).setCards(getController().cheatShuffle(list));
 

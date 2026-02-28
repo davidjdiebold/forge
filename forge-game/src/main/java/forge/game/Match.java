@@ -68,11 +68,12 @@ public class Match {
     }
 
     public Game createGame() {
-        return createGame(new HashMap<>());
+        return createGame(new HashMap<>(), MyRandom.getRandom());
     }
 
-    public Game createGame(Map<Integer, String> drawSchedule) {
+    public Game createGame(Map<Integer, String> drawSchedule, Random random) {
         Game game = new Game(players, rules, this, drawSchedule);
+        game.rng = random;
         return game;
     }
 

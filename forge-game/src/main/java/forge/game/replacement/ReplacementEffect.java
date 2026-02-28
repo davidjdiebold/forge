@@ -19,7 +19,7 @@ package forge.game.replacement;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
 
 import com.google.common.collect.*;
 
@@ -37,6 +37,7 @@ import forge.game.phase.PhaseType;
 import forge.game.spellability.SpellAbility;
 import forge.game.zone.ZoneType;
 import forge.util.CardTranslation;
+import forge.util.Hasher;
 import forge.util.Lang;
 import forge.util.TextUtil;
 
@@ -296,7 +297,7 @@ public abstract class ReplacementEffect extends TriggerReplacementBase {
     /** {@inheritDoc} */
     @Override
     public int hashCode() {
-        return Objects.hash(ReplacementEffect.class, getId());
+        return Hasher.hashCode(ReplacementEffect.class, getId());
     }
 
     public ReplacementType getMode() {

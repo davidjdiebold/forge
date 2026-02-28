@@ -6053,8 +6053,8 @@ public class Card extends GameEntity implements Comparable<Card>, IHasSVars {
                 damageType = DamageType.M1M1Counters;
             }
             else { // 120.3e
-                int old = damage.getOrDefault(Objects.hash(source.getId(), source.getTimestamp()), 0);
-                damage.put(Objects.hash(source.getId(), source.getTimestamp()), old + damageIn);
+                int old = damage.getOrDefault(Hasher.hashCode(source.getId(), source.getTimestamp()), 0);
+                damage.put(Hasher.hashCode(source.getId(), source.getTimestamp()), old + damageIn);
                 view.updateDamage(this);
             }
 

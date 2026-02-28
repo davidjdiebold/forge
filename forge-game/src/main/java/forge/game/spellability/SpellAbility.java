@@ -69,11 +69,7 @@ import forge.game.staticability.StaticAbilityMustTarget;
 import forge.game.trigger.Trigger;
 import forge.game.trigger.TriggerType;
 import forge.game.zone.ZoneType;
-import forge.util.Aggregates;
-import forge.util.CardTranslation;
-import forge.util.Lang;
-import forge.util.Localizer;
-import forge.util.TextUtil;
+import forge.util.*;
 
 //only SpellAbility can go on the stack
 //override any methods as needed
@@ -228,7 +224,7 @@ public abstract class SpellAbility extends CardTraitBase implements ISpellAbilit
     }
     @Override
     public int hashCode() {
-        return Objects.hash(SpellAbility.class, getId());
+        return Hasher.hashCode(SpellAbility.class, getId());
     }
     @Override
     public boolean equals(final Object obj) {

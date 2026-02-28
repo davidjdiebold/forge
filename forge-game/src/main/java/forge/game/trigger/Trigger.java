@@ -36,6 +36,7 @@ import forge.game.spellability.SpellAbility;
 import forge.game.zone.CostPaymentStack;
 import forge.game.zone.ZoneType;
 import forge.util.CardTranslation;
+import forge.util.Hasher;
 import forge.util.Lang;
 import forge.util.TextUtil;
 
@@ -445,7 +446,7 @@ public abstract class Trigger extends TriggerReplacementBase {
     /** {@inheritDoc} */
     @Override
     public int hashCode() {
-        return Objects.hash(Trigger.class, getId());
+        return Hasher.hashCode(Trigger.class, getId());
     }
 
     /**

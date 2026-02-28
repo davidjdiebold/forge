@@ -492,6 +492,7 @@ public class Player extends GameEntity implements Comparable<Player> {
             game.getTriggerHandler().runTrigger(TriggerType.LifeGained, runParams, false);
 
             game.fireEvent(new GameEventPlayerLivesChanged(this, oldLife, life));
+            getGame().addLifeChangeEvent(this);
             return true;
         }
 
@@ -541,6 +542,7 @@ public class Player extends GameEntity implements Comparable<Player> {
                 game.fireEvent(new GameEventManaBurn(this, lifeLost, true));
             } else {
                 game.fireEvent(new GameEventPlayerLivesChanged(this, oldLife, life));
+                getGame().addLifeChangeEvent(this);
             }
         } else if (toLose == 0) {
             // Rule 118.4
@@ -1308,16 +1310,23 @@ public class Player extends GameEntity implements Comparable<Player> {
     //TODO player created for each game ?
     public int iDrawn = 0;
     public Map<Integer, String> drawSchedule = new HashMap<>();
-    public List<String> drawn = new ArrayList<>();
     private Card getCard(PlayerZone library) {
         Card c;
-        String shouldBeDrawn = drawSchedule != null ? drawSchedule.get(iDrawn) : null;
+        String shouldBeDrawn = null;// drawSchedule != null ? drawSchedule.get(iDrawn) : null;
         ++iDrawn;
         if(shouldBeDrawn!=null)
         {
             for (Card card : library.getCards()) {
                 if(card.getName().equals(shouldBeDrawn)) {
-                    drawn.add(card.getName());
+                    int nb_events = (int)getGame().getGameEvents().stream().filter(gameEventApi -> gameEventApi.player==0).count();
+                    if (nb_events != (iDrawn-1)) {
+                        System.out.println("Nb events : " + nb_events);
+                        System.out.println("iDrawn : " + (iDrawn-1));
+                    }
+                    if (card.getName().equals("Forest")) {
+                        System.out.println("Problem !");
+                    }
+                    getGame().addDrawEvent(this, card.getName());
                     return card;
                 }
             }
@@ -1327,7 +1336,7 @@ public class Player extends GameEntity implements Comparable<Player> {
         } else {
             c = library.get(0);
         }
-        drawn.add(c.getName());
+        getGame().addDrawEvent(this, c.getName());
         return c;
     }
 
@@ -1728,6 +1737,7 @@ public class Player extends GameEntity implements Comparable<Player> {
 
         // play a sound
         game.fireEvent(new GameEventLandPlayed(this, land));
+        game.addCardPlayedEvent(this, land.getName());
 
         // Run triggers
         runParams.put(AbilityKey.SpellAbility, cause);
@@ -2783,6 +2793,11 @@ public class Player extends GameEntity implements Comparable<Player> {
         stats.notifyHasMulliganed();
         stats.notifyOpeningHandSize(newHand);
         achievementTracker.mulliganTo = newHand;
+
+        getGame().addMulliganEvent(this);
+        for(Card c : getCardsIn(ZoneType.Hand)) {
+            getGame().addDrawEvent(this, c.getName());
+        }
     }
 
     public List<Card> getCommanders() {

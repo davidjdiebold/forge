@@ -127,6 +127,52 @@ public class Game {
 
     public Random rng = MyRandom.getRandom();
 
+    private final List<GameEventApi> game_events = new ArrayList<>();
+    public void addDrawEvent(Player player, String card) {
+        game_events.add(
+                new GameEventApi(
+                        "draw",
+                        player.id,
+                        getPhaseHandler().getTurn(),
+                        card,
+                        -1
+                )
+        );
+    }
+    public void addMulliganEvent(Player player) {
+        game_events.add(
+                new GameEventApi(
+                        "mulligan",
+                        player.id,
+                        0,
+                        null,
+                        -1
+                )
+        );
+    }
+    public void addLifeChangeEvent(Player player) {
+        game_events.add(
+                new GameEventApi(
+                        "lifechange",
+                        player.id,
+                        getPhaseHandler().getTurn(),
+                        null,
+                        player.getLife()
+                )
+        );
+    }
+    public void addCardPlayedEvent(Player player, String cardName) {
+        /**game_events.add(
+                new GameEventApi(
+                        "played",
+                        player.id,
+                        getPhaseHandler().getTurn(),
+                        cardName,
+                        0
+                )
+        );**/
+    }
+
     /**
      * Gets the id.
      *
@@ -628,6 +674,10 @@ public class Game {
 
     public void setStartingHands(List<List<Card>> startingHands) {
         _startingHands = startingHands;
+    }
+
+    public List<GameEventApi> getGameEvents() {
+        return game_events;
     }
 
     public Random getRandom() {

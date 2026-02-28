@@ -18,7 +18,6 @@
 package forge.game;
 
 import java.io.Serializable;
-import java.sql.Array;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -26,9 +25,7 @@ import com.google.common.collect.Lists;
 
 import forge.LobbyPlayer;
 import forge.game.card.Card;
-import forge.game.card.CardCollectionView;
 import forge.game.player.*;
-import forge.game.zone.ZoneType;
 import forge.item.PaperCard;
 
 /**

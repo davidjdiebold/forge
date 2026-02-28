@@ -62,7 +62,7 @@
         <dependency>
             <groupId>com.badlogicgames.gdx-controllers</groupId>
             <artifactId>gdx-controllers-core</artifactId>
-            <version>2.2.3-SNAPSHOT</version>
+            <version>2.2.3</version>
         </dependency>
         <dependency>
             <groupId>com.badlogicgames.gdx</groupId>

@@ -17,28 +17,41 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
+/**
+ * cd forge
+ * mvn clean install -DskipTests
+ * cd forge-desktop-gui
+ * mvn clean package assembly:single@make-uber-jar-with-tests
+ * cd target
+ *
+ */
 public class GameSimulationServiceMain {
     public static void main(String[] args) {
         try {
+            String strPort = System.getenv("PORT");
+            int port = Integer.parseInt(strPort!=null ? strPort : "8001");
+
             GuiBase.setInterface(new GuiDesktop());
             FModel.initialize(null, preferences -> {
                 preferences.setPref(ForgePreferences.FPref.LOAD_CARD_SCRIPTS_LAZILY, false);
                 return null;
             });
 
-            ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(8);
+            ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(4);
+            GameRules gameRules = new GameRules(GameType.Constructed);
+            gameRules.setManaBurn(true);
             Rules rules = new Rules(
-                    new GameRules(GameType.Constructed),
+                    gameRules,
                     FModel.getFormats().get9394French(),
                     DeckFormat.Constructed
             );
             GameRunnerController controller = new GameRunnerController(rules);
-            controller.start();
 
-            HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 8001), 16);
+            HttpServer server = HttpServer.create(new InetSocketAddress("localhost", port), 16);
 
             server.createContext("/decks", new HttpHandler(new DecksHandler(controller), GetDecksRequest.class));
             server.createContext("/game", new HttpHandler(new GameHandler(controller), PostGamesRequest.class));
+            server.createContext("/clear", new HttpHandler(new ClearGamesHandler(controller), ClearGamesRequest.class));
             server.createContext("/gamestat", new HttpHandler(new GameStatHandler(controller), GetGameStatsRequest.class));
             server.createContext("/gameoutcome", new HttpHandler(new GameOutcomesHandler(controller), GetGameOutcomesRequest.class));
 

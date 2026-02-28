@@ -11,7 +11,6 @@ import forge.gamesimulationservice.model.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Semaphore;
 
 public class GameRunnerController implements GameRunnerCallbacks {
 
@@ -30,10 +29,6 @@ public class GameRunnerController implements GameRunnerCallbacks {
         _outcomes = new ConcurrentHashMap<>();
     }
 
-    public void start() {
-        _gameRunner.start();
-    }
-
     public PostGamesResponse post(PostGamesRequest request) {
         _gamesToRun.clear();
         for (Game game : request.getGames()) {
@@ -47,6 +42,7 @@ public class GameRunnerController implements GameRunnerCallbacks {
             //TODO check gameid consistency ?
             _gamesToRun.put(game.getId(), game);
         }
+        _gameRunner.start();
         return new PostGamesResponse();
     }
 
@@ -89,22 +85,29 @@ public class GameRunnerController implements GameRunnerCallbacks {
     }
 
     @Override
-    public Game getGame() {
+    public synchronized Game getGame() {
         if(_gamesToRun.size()==0)
             return null;
         int sumWeights = 0;
         for (Game game : _gamesToRun.values()) {
             sumWeights += game.getWeight();
         }
+        if (sumWeights<=0)
+            return null;
 
         Random random = new Random();
         int index = random.nextInt(sumWeights);
 
         int counter = 0;
-        for (Game game : _gamesToRun.values()) {
+        for (Map.Entry<String, Game> keyGame : _gamesToRun.entrySet()) {
+            Game game = keyGame.getValue();
             counter += game.getWeight();
-            if(counter>index)
+            if(counter>index) {
+                if(game.isOneShot()) {
+                    _gamesToRun.remove(keyGame.getKey());
+                }
                 return game;
+            }
         }
         return null;
     }
@@ -125,6 +128,7 @@ public class GameRunnerController implements GameRunnerCallbacks {
             return gameStat;
         });
         GameOutcome out = ApiAdapters.build(key, outcome);
+        _outcomes.putIfAbsent(game.getId(), new ConcurrentLinkedQueue<>());
         _outcomes.get(key).add(out);
     }
 
@@ -138,5 +142,13 @@ public class GameRunnerController implements GameRunnerCallbacks {
         GetDecksResponse response = new GetDecksResponse();
         response.setDecks(ret);
         return response;
+    }
+
+    public void clearGames() {
+        _gameRunner.stop();
+        _gamesToRun.clear();
+        _decks.clear();
+        _stats.clear();
+        _outcomes.clear();
     }
 }

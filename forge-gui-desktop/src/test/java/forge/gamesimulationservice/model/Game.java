@@ -8,6 +8,10 @@ public class Game {
 
     private DrawSchedule[] drawSchedules;
 
+    private int randomSeed;
+
+    private boolean isOneShot;
+
     public Game() {
     }
 
@@ -41,5 +45,21 @@ public class Game {
 
     public void setDrawSchedules(DrawSchedule[] drawSchedules) {
         this.drawSchedules = drawSchedules;
+    }
+
+    public int getRandomSeed() {
+        return randomSeed;
+    }
+
+    public void setRandomSeed(int randomSeed) {
+        this.randomSeed = randomSeed;
+    }
+
+    public boolean isOneShot() {
+        return isOneShot;
+    }
+
+    public void setOneShot(boolean oneShot) {
+        isOneShot = oneShot;
     }
 }

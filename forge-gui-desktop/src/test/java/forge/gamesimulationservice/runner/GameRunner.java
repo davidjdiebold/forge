@@ -16,14 +16,17 @@ import forge.player.GamePlayerUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GameRunner {
 
     private final GameRunnerCallbacks _callbacks;
     private final GameRules _rules;
 
+    private final AtomicBoolean _isUp = new AtomicBoolean(false);
     private final int _nbExecutors = (int) (Runtime.getRuntime().availableProcessors() * 0.85);
     private final ExecutorService _executorService = Executors.newFixedThreadPool(_nbExecutors);
 
@@ -35,14 +38,21 @@ public class GameRunner {
     }
 
     public void start() {
-        for (int i = 0; i < _nbExecutors; i++) {
-            _executorService.submit(this::runGames);
+        if(!_isUp.get()) {
+            _isUp.set(true);
+            for (int i = 0; i < _nbExecutors; i++) {
+                _executorService.submit(this::runGames);
+            }
         }
+    }
+
+    public void stop() {
+        _isUp.set(false);
     }
 
     private void runGames() {
         try {
-            while (true) {
+            while (_isUp.get()) {
                 forge.gamesimulationservice.model.Game gameSetup = _callbacks.getGame();
                 if(gameSetup==null)
                     continue;
@@ -50,7 +60,8 @@ public class GameRunner {
                 Match mc = buildMatch(gameSetup);
 
                 Map<Integer, String> drawSchedule = ApiAdapters.buildDrawSchedule(gameSetup.getDrawSchedules());
-                final Game game = mc.createGame(drawSchedule);
+                Random random = new Random(gameSetup.getRandomSeed());
+                final Game game = mc.createGame(drawSchedule, random);
                 _timeoutPool.submit(() -> {
                     try {
                         Thread.sleep(1000 * 60 * 2);
@@ -69,7 +80,9 @@ public class GameRunner {
                     }
                 }
 
-                _callbacks.afterGameRun(gameSetup, game);
+                if (_isUp.get()) {
+                    _callbacks.afterGameRun(gameSetup, game);
+                }
             }
         }
         catch(Throwable t) {

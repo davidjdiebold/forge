@@ -4,6 +4,7 @@ import forge.LobbyPlayer;
 import forge.StaticData;
 import forge.deck.Deck;
 import forge.game.GameEndReason;
+import forge.game.GameEventApi;
 import forge.game.player.PlayerStatistics;
 import forge.game.player.RegisteredPlayer;
 import forge.gamesimulationservice.model.CardCount;
@@ -13,7 +14,6 @@ import forge.gamesimulationservice.model.GameOutcome;
 import forge.item.PaperCard;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -54,14 +54,15 @@ public class ApiAdapters {
                         && game.getOutcome().getWinCondition() != GameEndReason.Draw);
             }
         }
-        List<String> drawn = game.getRegisteredPlayers().get(0).drawn;
-        ret.setCardsDrawn(new String[drawn.size()]);
+        GameEventApi[] events = new GameEventApi[game.getGameEvents().size()];
         int i = 0;
-        for (String card : drawn) {
-            ret.getCardsDrawn()[i] = card;
-            i++;
+        for (GameEventApi e : game.getGameEvents()) {
+            events[i] = e;
+            ++i;
         }
+        ret.setEvents(events);
         ret.setLastTurnNumber(game.getOutcome().getLastTurnNumber());
+        ret.setFirstPlayer(game.getStartingPlayer().getName().equals("playerA") ? 0 : 1);
         return ret;
     }
 }

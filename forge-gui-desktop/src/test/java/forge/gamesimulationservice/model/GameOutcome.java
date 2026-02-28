@@ -1,10 +1,13 @@
 package forge.gamesimulationservice.model;
 
+import forge.game.GameEventApi;
+
 public class GameOutcome {
     private String gameId;
     private boolean isWin;
-    private String[] cardsDrawn;
     private int lastTurnNumber;
+    private int firstPlayer;
+    private GameEventApi[] events;
 
     public GameOutcome() {
     }
@@ -33,11 +36,19 @@ public class GameOutcome {
         isWin = win;
     }
 
-    public String[] getCardsDrawn() {
-        return cardsDrawn;
+    public GameEventApi[] getEvents() {
+        return events;
     }
 
-    public void setCardsDrawn(String[] cardsDrawn) {
-        this.cardsDrawn = cardsDrawn;
+    public void setEvents(GameEventApi[] events) {
+        this.events = events;
+    }
+
+    public int getFirstPlayer() {
+        return firstPlayer;
+    }
+
+    public void setFirstPlayer(int iPlayer) {
+        this.firstPlayer = iPlayer;
     }
 }

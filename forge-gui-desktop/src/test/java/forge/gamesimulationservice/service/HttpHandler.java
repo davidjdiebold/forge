@@ -31,9 +31,10 @@ public class HttpHandler<Request, Response> implements com.sun.net.httpserver.Ht
         try {
             InputStream requestBody = httpExchange.getRequestBody();
             String jsonString = doHandlePost(requestBody);
+            byte[] bytes = jsonString.getBytes();
+            httpExchange.sendResponseHeaders(200, bytes.length);
             OutputStream outputStream = httpExchange.getResponseBody();
-            httpExchange.sendResponseHeaders(200, jsonString.length());
-            outputStream.write(jsonString.getBytes());
+            outputStream.write(bytes);
             outputStream.flush();
             outputStream.close();
         } catch (Throwable e) {

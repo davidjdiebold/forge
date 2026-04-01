@@ -7,6 +7,7 @@ import forge.ai.SpellAbilityAi;
 import forge.game.card.Card;
 import forge.game.card.CardCollectionView;
 import forge.game.card.CardLists;
+import forge.game.card.CardPredicates;
 import forge.game.phase.PhaseHandler;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
@@ -35,7 +36,19 @@ public class FlipOntoBattlefieldAi extends SpellAbilityAi {
             return !rightToughness.isEmpty();
         }
 
-        return !aiPlayer.getOpponents().getCardsIn(ZoneType.Battlefield).isEmpty();
+        // Only use Chaos Orb against high-value targets since it sacrifices itself
+        CardCollectionView oppPerms = CardLists.filter(aiPlayer.getOpponents().getCardsIn(ZoneType.Battlefield),
+                CardPredicates.Presets.CAN_BE_DESTROYED);
+        // Look for non-land permanents or non-basic lands worth destroying
+        CardCollectionView highValueTargets = CardLists.filter(oppPerms, new Predicate<Card>() {
+            @Override
+            public boolean apply(Card card) {
+                return card.isCreature() || card.isPlaneswalker() || card.isArtifact()
+                        || (card.isEnchantment() && !card.isAura())
+                        || (card.isLand() && !card.isBasicLand());
+            }
+        });
+        return !highValueTargets.isEmpty();
     }
 
     @Override

@@ -195,6 +195,15 @@ public class PermanentAi extends SpellAbilityAi {
             }
         }
 
+        // skip pure mana sources when the AI already has 7 or more mana sources available
+        if (!source.isLand() && !source.getManaAbilities().isEmpty() && source.getNonManaAbilities().isEmpty()
+                && !source.isCreature()) {
+            CardCollection manaSources = ComputerUtilMana.getAvailableManaSources(ai, true);
+            if (manaSources.size() >= 7) {
+                return false;
+            }
+        }
+
         // check for specific AI preferences
         if (source.hasSVar("AICastPreference")) {
             String pref = source.getSVar("AICastPreference");

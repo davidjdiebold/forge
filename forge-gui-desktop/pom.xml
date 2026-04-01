@@ -32,24 +32,14 @@
                         <configuration>
                             <finalName>${project.build.finalName}-uber-tests</finalName>
                             <appendAssemblyId>false</appendAssemblyId>
-                            <descriptorRefs>
-                                <descriptorRef>jar-with-dependencies</descriptorRef>
-                            </descriptorRefs>
+                            <descriptors>
+                                <descriptor>src/assembly/uber-tests.xml</descriptor>
+                            </descriptors>
                             <archive>
                                 <manifest>
                                     <mainClass>forge.gamesimulationservice.GameSimulationServiceMain</mainClass>
                                 </manifest>
                             </archive>
-                            <fileSets>
-                                <!-- Include test classes -->
-                                <fileSet>
-                                    <directory>${project.build.testOutputDirectory}</directory>
-                                    <outputDirectory>/</outputDirectory>
-                                    <includes>
-                                        <include>**/*.class</include>
-                                    </includes>
-                                </fileSet>
-                            </fileSets>
                         </configuration>
                     </execution>
                 </executions>

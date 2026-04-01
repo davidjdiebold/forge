@@ -28,6 +28,14 @@ Dev instructions here: [Getting Started](https://github.com/Card-Forge/forge/wik
 
 - Go to the project location on your machine.  Run Maven to download all dependencies and build a snapshot.  Example for Windows & Linux: `mvn -U -B clean -P windows-linux install`
 
+## GameSimulationService
+
+mvn clean install -DskipTests
+mvn -pl forge-gui-desktop dependency:build-classpath -Dmdep.outputFile=/tmp/forge-cp.txt -DincludeScope=test
+cd forge-gui-desktop
+CP=$(cat /tmp/forge-cp.txt)
+java -cp "target/classes:target/test-classes:../forge-gui/res/languages:$CP" forge.gamesimulationservice.GameSimulationServiceMain
+
 ## Eclipse
 
 Eclipse includes Maven integration so a separate install is not necessary.  For other IDEs, your mileage may vary.
@@ -228,3 +236,5 @@ Mobile GUI game logic utilizing [libgdx](https://libgdx.badlogicgames.com/) libr
 #### forge-gui-mobile-dev
 
 Libgdx backend for desktop development for mobile backends.  Utilizes LWJGL.  Relies on forge-gui-mobile for GUI logic.
+
+###

@@ -258,6 +258,10 @@ public class DrawAi extends SpellAbilityAi {
                     numCards = root.getXManaCostPaid();
                 } else {
                     numCards = ComputerUtilCost.getMaxXValue(sa, ai, sa.isTrigger());
+                    // enforce minimum X if specified on the card
+                    if (sa.hasParam("AIMinX") && numCards < Integer.parseInt(sa.getParam("AIMinX"))) {
+                        return false;
+                    }
                     // try not to overdraw
                     int safeDraw = Math.abs(Math.min(computerMaxHandSize - computerHandSize, computerLibrarySize - 3));
                     if (source.isInstant() || source.isSorcery()) { safeDraw++; } // card will be spent

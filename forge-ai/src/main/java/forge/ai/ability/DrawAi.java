@@ -526,7 +526,17 @@ public class DrawAi extends SpellAbilityAi {
                     && !sa.isTrigger()
                     && !assumeSafeX) {
                 // Don't draw too many cards and then risk discarding cards at EOT
-                if (!drawback) {
+                // But if there's a discard sub-ability (loot effect), account for it
+                final SpellAbility discardSub = sa.findSubAbilityByType(ApiType.Discard);
+                int netCards = numCards;
+                if (discardSub != null) {
+                    int numDiscard = 1;
+                    if (discardSub.hasParam("NumCards")) {
+                        numDiscard = AbilityUtils.calculateAmount(source, discardSub.getParam("NumCards"), discardSub);
+                    }
+                    netCards -= numDiscard;
+                }
+                if (netCards > 0 && !drawback) {
                     return false;
                 }
             }

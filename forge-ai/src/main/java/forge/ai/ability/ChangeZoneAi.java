@@ -1229,8 +1229,28 @@ public class ChangeZoneAi extends SpellAbilityAi {
                     }
                 } else if (destination.equals(ZoneType.Hand) || destination.equals(ZoneType.Library)) {
                     List<Card> nonLands = CardLists.getNotType(list, "Land");
-                    // Prefer to pull a creature, generally more useful for AI.
-                    choice = chooseCreature(ai, CardLists.filter(nonLands, CardPredicates.Presets.CREATURES));
+                    // In reanimator decks, prefer non-creature spells over creatures that can't be cast,
+                    // since the creatures are better off staying in the graveyard as reanimation targets.
+                    if (origin.contains(ZoneType.Graveyard) && ComputerUtil.isPlayingReanimator(ai)) {
+                        CardCollection nonCreatures = CardLists.filter(nonLands, Predicates.not(CardPredicates.Presets.CREATURES));
+                        if (!nonCreatures.isEmpty()) {
+                            choice = ComputerUtilCard.getBestAI(nonCreatures);
+                        }
+                        if (choice == null) {
+                            // Fall back to creatures only if they can actually be cast
+                            CardCollection castableCreatures = CardLists.filter(nonLands, new Predicate<Card>() {
+                                @Override
+                                public boolean apply(final Card c) {
+                                    return c.isCreature() && c.getFirstSpellAbility() != null
+                                            && ComputerUtilMana.hasEnoughManaSourcesToCast(c.getFirstSpellAbility(), ai);
+                                }
+                            });
+                            choice = chooseCreature(ai, castableCreatures);
+                        }
+                    } else {
+                        // Prefer to pull a creature, generally more useful for AI.
+                        choice = chooseCreature(ai, CardLists.filter(nonLands, CardPredicates.Presets.CREATURES));
+                    }
                     if (choice == null) { // Could not find a creature.
                         if (ai.getLife() <= 5) { // Desperate?
                             // Get something AI can cast soon.
@@ -1493,8 +1513,29 @@ public class ChangeZoneAi extends SpellAbilityAi {
                     choice = mostExpensivePermanent;
                 } else if (destination.equals(ZoneType.Hand) || destination.equals(ZoneType.Library)) {
                     List<Card> nonLands = CardLists.getNotType(list, "Land");
-                    // Prefer to pull a creature, generally more useful for AI.
-                    choice = chooseCreature(ai, CardLists.filter(nonLands, CardPredicates.Presets.CREATURES));
+                    boolean fromGrave = sa.hasParam("Origin") && ZoneType.listValueOf(sa.getParam("Origin")).contains(ZoneType.Graveyard);
+                    // In reanimator decks, prefer non-creature spells over creatures that can't be cast,
+                    // since the creatures are better off staying in the graveyard as reanimation targets.
+                    if (fromGrave && ComputerUtil.isPlayingReanimator(ai)) {
+                        CardCollection nonCreatures = CardLists.filter(nonLands, Predicates.not(CardPredicates.Presets.CREATURES));
+                        if (!nonCreatures.isEmpty()) {
+                            choice = ComputerUtilCard.getBestAI(nonCreatures);
+                        }
+                        if (choice == null) {
+                            // Fall back to creatures only if they can actually be cast
+                            CardCollection castableCreatures = CardLists.filter(nonLands, new Predicate<Card>() {
+                                @Override
+                                public boolean apply(final Card c) {
+                                    return c.isCreature() && c.getFirstSpellAbility() != null
+                                            && ComputerUtilMana.hasEnoughManaSourcesToCast(c.getFirstSpellAbility(), ai);
+                                }
+                            });
+                            choice = chooseCreature(ai, castableCreatures);
+                        }
+                    } else {
+                        // Prefer to pull a creature, generally more useful for AI.
+                        choice = chooseCreature(ai, CardLists.filter(nonLands, CardPredicates.Presets.CREATURES));
+                    }
                     if (choice == null) { // Could not find a creature.
                         if (ai.getLife() <= 5) { // Desperate?
                             // Get something AI can cast soon.

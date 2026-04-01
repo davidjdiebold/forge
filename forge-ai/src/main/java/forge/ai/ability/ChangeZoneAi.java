@@ -1733,14 +1733,86 @@ public class ChangeZoneAi extends SpellAbilityAi {
                     c = basicManaFixing(decider, fetchList);
                 }
             }
+            // Reanimator-aware tutor logic: prioritize finding the missing piece
+            if (c == null && ComputerUtil.isPlayingReanimator(decider)) {
+                CardCollection nonLands = CardLists.getNotType(fetchList, "Land");
+                CardCollection nonLandNonCreature = CardLists.filter(nonLands, Predicates.not(Presets.CREATURES));
+                CardCollectionView creaturesInGrave = CardLists.filter(decider.getCardsIn(ZoneType.Graveyard), Presets.CREATURES);
+                // Identify reanimation spells: cards that move creatures from Graveyard to Battlefield
+                Predicate<Card> isReanimateSpell = new Predicate<Card>() {
+                    @Override
+                    public boolean apply(final Card card) {
+                        for (SpellAbility sa2 : card.getSpellAbilities()) {
+                            if ("Graveyard".equals(sa2.getParam("Origin"))
+                                    && "Battlefield".equals(sa2.getParam("Destination"))) {
+                                return true;
+                            }
+                            if ("Reanimate".equals(sa2.getParam("AILogic"))) {
+                                return true;
+                            }
+                        }
+                        return "true".equalsIgnoreCase(card.getSVar("IsReanimatorCard"));
+                    }
+                };
+                CardCollection reanimateSpells = CardLists.filter(nonLandNonCreature, isReanimateSpell);
+                boolean hasReanimateInHand = !CardLists.filter(decider.getCardsIn(ZoneType.Hand), isReanimateSpell).isEmpty();
+
+                // High-value draw spells that help assemble the combo
+                CardCollection powerDrawSpells = CardLists.filter(nonLandNonCreature, new Predicate<Card>() {
+                    @Override
+                    public boolean apply(final Card card) {
+                        String name = card.getName();
+                        return "Ancestral Recall".equals(name) || "Wheel of Fortune".equals(name);
+                    }
+                });
+
+                if (!creaturesInGrave.isEmpty() && !reanimateSpells.isEmpty() && !hasReanimateInHand) {
+                    // Have a creature in graveyard but no reanimation spell in hand — get one
+                    c = ComputerUtilCard.getBestAI(reanimateSpells);
+                } else if (!reanimateSpells.isEmpty() && !hasReanimateInHand) {
+                    // No reanimation spell in hand — get one as the key enabler
+                    c = ComputerUtilCard.getBestAI(reanimateSpells);
+                } else if (!powerDrawSpells.isEmpty()) {
+                    // Already have a reanimation spell — get a power draw spell to dig deeper
+                    // Prefer Wheel of Fortune when behind on hand size, no reanimate in hand, and have a creature to discard
+                    boolean hasCreatureInHand = !CardLists.filter(decider.getCardsIn(ZoneType.Hand), Presets.CREATURES).isEmpty();
+                    int oppMaxHandSize = 0;
+                    for (Player opp : decider.getOpponents()) {
+                        oppMaxHandSize = Math.max(oppMaxHandSize, opp.getCardsIn(ZoneType.Hand).size());
+                    }
+                    boolean preferWheel = decider.getCardsIn(ZoneType.Hand).size() < oppMaxHandSize
+                            && !hasReanimateInHand && hasCreatureInHand;
+                    CardCollection wheels = CardLists.filter(powerDrawSpells, CardPredicates.nameEquals("Wheel of Fortune"));
+                    Card wheel = wheels.isEmpty() ? null : wheels.getFirst();
+                    CardCollection ancestrals = CardLists.filter(powerDrawSpells, CardPredicates.nameEquals("Ancestral Recall"));
+                    Card ancestral = ancestrals.isEmpty() ? null : ancestrals.getFirst();
+                    if (preferWheel && wheel != null) {
+                        c = wheel;
+                    } else if (ancestral != null) {
+                        c = ancestral;
+                    } else {
+                        c = ComputerUtilCard.getBestAI(powerDrawSpells);
+                    }
+                } else if (!nonLandNonCreature.isEmpty()) {
+                    // Fall back to best non-creature, non-land spell
+                    c = ComputerUtilCard.getBestAI(nonLandNonCreature);
+                }
+            }
+
             if (c == null) {
+                boolean isReanimator = ComputerUtil.isPlayingReanimator(decider);
                 if (Iterables.all(fetchList, Presets.LANDS)) {
                     // we're only choosing from lands, so get the best land
                     c = ComputerUtilCard.getBestLandAI(fetchList);
                 } else {
                     fetchList = CardLists.getNotType(fetchList, "Land");
-                    // Prefer to pull a creature, generally more useful for AI.
-                    c = chooseCreature(decider, CardLists.filter(fetchList, CardPredicates.Presets.CREATURES));
+                    if (isReanimator) {
+                        // In reanimator decks, never tutor for a creature — they belong in the graveyard
+                        c = ComputerUtilCard.getBestAI(CardLists.filter(fetchList, Predicates.not(Presets.CREATURES)));
+                    } else {
+                        // Prefer to pull a creature, generally more useful for AI.
+                        c = chooseCreature(decider, CardLists.filter(fetchList, CardPredicates.Presets.CREATURES));
+                    }
                 }
             }
             if (c == null) { // Could not find a creature.

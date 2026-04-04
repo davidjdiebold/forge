@@ -351,7 +351,7 @@ public class GuiDesktop implements IGuiBase {
         double scaleY = at.getScaleY();
         return (float) Math.min(scaleX, scaleY);
     }
-    static float screenScale = initializeScreenScale();
+    static float screenScale = 1.5F; // HACK initializeScreenScale();
 
     @Override
     public float getScreenScale() {

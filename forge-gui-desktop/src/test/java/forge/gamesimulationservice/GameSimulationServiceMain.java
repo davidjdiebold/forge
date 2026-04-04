@@ -47,7 +47,7 @@ public class GameSimulationServiceMain {
             );
             GameRunnerController controller = new GameRunnerController(rules);
 
-            HttpServer server = HttpServer.create(new InetSocketAddress("localhost", port), 16);
+            HttpServer server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 16);
 
             server.createContext("/decks", new HttpHandler(new DecksHandler(controller), GetDecksRequest.class));
             server.createContext("/game", new HttpHandler(new GameHandler(controller), PostGamesRequest.class));
@@ -63,8 +63,8 @@ public class GameSimulationServiceMain {
             System.out.println("/ /\\/\\ \\ || (_| | / / | (_) | | | (_| |  __/ _\\ \\  __/ |   \\ V /  __/ |   ");
             System.out.println("\\/    \\/\\__\\__, | \\/   \\___/|_|  \\__, |\\___| \\__/\\___|_|    \\_/ \\___|_|   ");
             System.out.println("           |___/                 |___/                                    ");
-            System.out.println("http://localhost:8001/game");
-            System.out.println("http://localhost:8001/gamestat");
+            System.out.println("http://0.0.0.0:8001/game");
+            System.out.println("http://0.0.0.0:8001/gamestat");
         } catch (IOException e) {
             e.printStackTrace();
         }

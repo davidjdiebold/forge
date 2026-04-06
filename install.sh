@@ -4,7 +4,7 @@ sudo apt install -y maven
 
 mkdir forge
 cd forge
-git clone git@github.com:davidjdiebold/forge.git
+GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git clone git@github.com:davidjdiebold/forge.git
 cd forge
 git fetch
 git checkout gamerunnerapi

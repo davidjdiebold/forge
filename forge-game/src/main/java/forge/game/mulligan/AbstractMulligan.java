@@ -34,13 +34,14 @@ public abstract class AbstractMulligan {
         for (final Card c : toMulligan) {
             player.getGame().getAction().moveToLibrary(c, null);
         }
-        try {
+        /**try {
             Thread.sleep(100); //delay for a tiny bit to give UI a chance catch up
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }
+        }**/
         player.shuffle(null);
         timesMulliganed++;
+        player.getGame().addMulliganEvent(player);
         mulliganDraw();
         player.onMulliganned();
     }

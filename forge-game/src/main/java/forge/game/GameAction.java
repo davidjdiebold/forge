@@ -30,6 +30,7 @@ import forge.game.card.*;
 import forge.game.event.*;
 import forge.game.keyword.Keyword;
 import forge.game.keyword.KeywordInterface;
+import forge.game.mulligan.MulliganService;
 import forge.game.player.GameLossReason;
 import forge.game.player.Player;
 import forge.game.player.PlayerActionConfirmMode;
@@ -2105,10 +2106,9 @@ public class GameAction {
             }
             game.setStartingHands(startingHands);
 
-            // HACK Disable Mulligan
-            // if (game.getRules().getGameType() != GameType.Puzzle) {
-            //     new MulliganService(first).perform();
-            // }
+            if (game.getRules().getGameType() != GameType.Puzzle) {
+                 new MulliganService(first).perform();
+            }
             if (game.isGameOver()) { break; } // conceded during "mulligan" prompt
 
             game.setAge(GameStage.Play);

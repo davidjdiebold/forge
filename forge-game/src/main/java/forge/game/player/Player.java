@@ -2788,10 +2788,9 @@ public class Player extends GameEntity implements Comparable<Player> {
         stats.notifyOpeningHandSize(newHand);
         achievementTracker.mulliganTo = newHand;
 
-        getGame().addMulliganEvent(this);
-        for(Card c : getCardsIn(ZoneType.Hand)) {
+        /**for(Card c : getCardsIn(ZoneType.Hand)) {
             getGame().addDrawEvent(this, c.getName());
-        }
+        }**/
     }
 
     public List<Card> getCommanders() {

@@ -34,6 +34,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -108,7 +109,8 @@ public class DamageDealAi extends DamageAiBase {
                         int threshold = aic.getIntProperty(AiProps.HOLD_X_DAMAGE_SPELLS_THRESHOLD);
                         boolean inDanger = ComputerUtil.aiLifeInDanger(ai, false, 0);
                         boolean isLethal = sa.getTargetRestrictions().canTgtPlayer() && dmg >= ai.getWeakestOpponent().getLife() && !ai.getWeakestOpponent().cantLoseForZeroOrLessLife();
-                        if (dmg < threshold && ai.getGame().getPhaseHandler().getTurn() / 2 < threshold && !inDanger && !isLethal) {
+                        if (dmg < threshold && ai.getGame().getPhaseHandler().getTurn() / 2 < threshold && !inDanger && !isLethal
+                                && !canSplitDamageToKillMultipleOppCreatures(ai, sa, dmg)) {
                             return false;
                         }
                     }
@@ -299,6 +301,66 @@ public class DamageDealAi extends DamageAiBase {
         }
 
         return true;
+    }
+
+    /**
+     * Returns true if this divided X-damage spell can be cast right now to kill
+     * at least two opposing creatures by splitting the damage between them.
+     * Used to override the "hold X damage spell for bigger play" heuristic when
+     * the spell already offers good multi-removal value.
+     */
+    private static boolean canSplitDamageToKillMultipleOppCreatures(final Player ai, final SpellAbility sa, final int maxX) {
+        if (maxX <= 0 || !sa.usesTargeting()) {
+            return false;
+        }
+        if (!"RoundedDown".equals(sa.getParam("DivideEvenly")) && !sa.isDividedAsYouChoose()) {
+            return false;
+        }
+        final TargetRestrictions tgt = sa.getTargetRestrictions();
+        final Card source = sa.getHostCard();
+        final int maxTargets = tgt.getMaxTargets(source, sa);
+        if (maxTargets < 2) {
+            return false;
+        }
+
+        final List<Card> oppCreatures = Lists.newArrayList();
+        for (final Player opp : ai.getOpponents()) {
+            for (final Card c : opp.getCreaturesInPlay()) {
+                if (c.canBeTargetedBy(sa)
+                        && !ComputerUtil.canRegenerate(opp, c)
+                        && !c.hasSVar("SacMe")) {
+                    oppCreatures.add(c);
+                }
+            }
+        }
+        if (oppCreatures.size() < 2) {
+            return false;
+        }
+        oppCreatures.sort(Comparator.comparingInt(Card::getNetToughness));
+
+        final int limit = Math.min(maxTargets, oppCreatures.size());
+        for (int n = 2; n <= limit; n++) {
+            // Conservatively assume each additional target may add 1 to the cost (e.g. Fireball's RaiseCost),
+            // so the effective X budget shrinks by (n - 1).
+            final int xForN = maxX - (n - 1);
+            if (xForN < n) {
+                continue; // not enough X to deal even 1 damage to each target
+            }
+            final int dmgPer = xForN / n;
+            if (dmgPer <= 0) {
+                continue;
+            }
+            int killed = 0;
+            for (int i = 0; i < n; i++) {
+                if (oppCreatures.get(i).getNetToughness() <= dmgPer) {
+                    killed++;
+                }
+            }
+            if (killed >= 2) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

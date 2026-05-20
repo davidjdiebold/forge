@@ -109,6 +109,12 @@ public class GameAction {
             checkStaticAbilities();
             game.getTriggerHandler().registerActiveTrigger(c, true);
             game.fireEvent(new GameEventCardChangeZone(c, zoneFrom, zoneTo));
+            game.addZoneChangeEvent(
+                    c.getOwner(),
+                    c.getName(),
+                    null,
+                    zoneTo.getZoneType() != null ? zoneTo.getZoneType().name() : null
+            );
             return c;
         }
 
@@ -625,6 +631,12 @@ public class GameAction {
 
         // play the change zone sound
         game.fireEvent(new GameEventCardChangeZone(c, zoneFrom, zoneTo));
+        game.addZoneChangeEvent(
+                c.getOwner(),
+                c.getName(),
+                zoneFrom != null && zoneFrom.getZoneType() != null ? zoneFrom.getZoneType().name() : null,
+                zoneTo.getZoneType() != null ? zoneTo.getZoneType().name() : null
+        );
 
         final Map<AbilityKey, Object> runParams = AbilityKey.mapFromCard(copied);
         runParams.put(AbilityKey.CardLKI, lastKnownInfo);

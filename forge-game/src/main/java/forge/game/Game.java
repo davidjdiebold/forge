@@ -172,6 +172,19 @@ public class Game {
                 )
         );**/
     }
+    public void addZoneChangeEvent(Player player, String cardName, String from, String to) {
+        game_events.add(
+                new GameEventApi(
+                        "zonechange",
+                        player == null ? -1 : player.id,
+                        getPhaseHandler() == null ? 0 : getPhaseHandler().getTurn(),
+                        cardName,
+                        -1,
+                        from,
+                        to
+                )
+        );
+    }
 
     /**
      * Gets the id.

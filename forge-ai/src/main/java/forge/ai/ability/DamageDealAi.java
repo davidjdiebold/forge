@@ -276,6 +276,18 @@ public class DamageDealAi extends DamageAiBase {
             }
         }
 
+        // Avoid wasting a fixed-damage spell on a creature that a cheaper alternative could destroy.
+        // Only applies when the spell deals significantly more damage than the target's toughness
+        // (e.g. 4-damage spell on a 1-toughness creature) and the AI has an in-hand or in-play
+        // damage source (or another damage spell) that could handle it on its own.
+        if (!damage.equals("X") && !sa.getTargets().isEmpty() && !sa.getTargets().isTargetingAnyPlayer()
+                && !ComputerUtil.aiLifeInDanger(ai, false, 0)
+                && !ComputerUtil.playImmediately(ai, sa)
+                && allCreatureTargetsAreOverkilledWithAlternative(ai, sa, dmg)) {
+            sa.resetTargets();
+            return false;
+        }
+
         if ((damage.equals("X") && sa.getSVar(damage).equals("Count$xPaid")) ||
                 sourceName.equals("Crater's Claws")) {
             // If I can kill my target by paying less mana, do it
@@ -358,6 +370,112 @@ public class DamageDealAi extends DamageAiBase {
             }
             if (killed >= 2) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns true when every targeted creature is significantly overkilled by
+     * this spell and the AI has a cheaper alternative damage source (a creature
+     * with a damage activated ability in hand or on the battlefield, or a
+     * smaller fixed-damage spell in hand) capable of destroying it. Used to
+     * defer wasting a high-damage spell like Psionic Blast on a 1-toughness
+     * creature when an Icatian Javelineers (or similar) could handle it.
+     */
+    private static boolean allCreatureTargetsAreOverkilledWithAlternative(final Player ai, final SpellAbility sa, final int dmg) {
+        if (dmg <= 1) {
+            return false; // can't be overkill if we deal 1 or less
+        }
+        boolean anyCreatureTarget = false;
+        for (Card tgt : sa.getTargets().getTargetCards()) {
+            if (!tgt.isCreature()) {
+                // Non-creature target (e.g. planeswalker) — don't apply overkill logic uniformly.
+                return false;
+            }
+            anyCreatureTarget = true;
+            int toughness = tgt.getNetToughness();
+            if (toughness < 1) {
+                toughness = 1;
+            }
+            // Require at least 2x damage to call it overkill, and an absolute waste of >= 2.
+            boolean overkilled = dmg >= toughness * 2 && (dmg - toughness) >= 2;
+            if (!overkilled) {
+                return false;
+            }
+            if (!hasCheaperDamageSourceFor(ai, sa, tgt)) {
+                return false;
+            }
+        }
+        return anyCreatureTarget;
+    }
+
+    private static boolean hasCheaperDamageSourceFor(final Player ai, final SpellAbility currentSa, final Card target) {
+        final int needed = Math.max(1, target.getNetToughness());
+        final int currentDmg;
+        {
+            String numDmgStr = currentSa.getParam("NumDmg");
+            currentDmg = numDmgStr != null ? AbilityUtils.calculateAmount(currentSa.getHostCard(), numDmgStr, currentSa) : Integer.MAX_VALUE;
+        }
+        final Card currentSource = currentSa.getHostCard();
+
+        // 1) Creatures already on the battlefield with a damage activated ability strong enough.
+        for (Card c : ai.getCardsIn(ZoneType.Battlefield)) {
+            if (c.equals(currentSource)) {
+                continue;
+            }
+            for (SpellAbility ab : c.getSpellAbilities()) {
+                if (ab.getApi() != ApiType.DealDamage || !ab.isAbility()) {
+                    continue;
+                }
+                String numDmg = ab.getParam("NumDmg");
+                if (numDmg == null) {
+                    continue;
+                }
+                int otherDmg = AbilityUtils.calculateAmount(c, numDmg, ab);
+                if (otherDmg >= needed) {
+                    return true;
+                }
+            }
+        }
+
+        // 2) Creatures in hand with damage activated abilities (will be usable a turn after being cast).
+        for (Card c : ai.getCardsIn(ZoneType.Hand)) {
+            if (!c.isCreature()) {
+                continue;
+            }
+            for (SpellAbility ab : c.getSpellAbilities()) {
+                if (ab.getApi() != ApiType.DealDamage || !ab.isAbility()) {
+                    continue;
+                }
+                String numDmg = ab.getParam("NumDmg");
+                if (numDmg == null) {
+                    continue;
+                }
+                int otherDmg = AbilityUtils.calculateAmount(c, numDmg, ab);
+                if (otherDmg >= needed) {
+                    return true;
+                }
+            }
+        }
+
+        // 3) Other fixed-damage spells in hand that could kill the target with less waste.
+        for (Card c : ai.getCardsIn(ZoneType.Hand)) {
+            if (c.equals(currentSource) || c.isCreature() || c.isLand()) {
+                continue;
+            }
+            for (SpellAbility ab : c.getSpellAbilities()) {
+                if (!ab.isSpell() || ab.getApi() != ApiType.DealDamage) {
+                    continue;
+                }
+                String numDmg = ab.getParam("NumDmg");
+                if (numDmg == null || numDmg.equals("X")) {
+                    continue;
+                }
+                int otherDmg = AbilityUtils.calculateAmount(c, numDmg, ab);
+                if (otherDmg >= needed && otherDmg < currentDmg) {
+                    return true;
+                }
             }
         }
         return false;

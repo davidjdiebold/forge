@@ -1661,8 +1661,53 @@ public class SpecialCardAi {
                 }
             }
 
+            // Maximize card advantage: dump playable cards from hand first so
+            // they don't get shuffled into the library by Timetwister. Defer
+            // casting Timetwister this priority pass if there is still a
+            // playable spell in hand we could cast first while leaving enough
+            // mana to also cast Timetwister afterwards.
+            if (hasPlayableHandCardWorthCastingFirst(ai, sa)) {
+                return false;
+            }
+
             // use in case we're getting low on cards or if we're significantly behind our opponent in cards in hand
             return aiHandSize < HAND_SIZE_THRESHOLD || maxOppHandSize - aiHandSize > HAND_SIZE_THRESHOLD;
+        }
+
+        private static boolean hasPlayableHandCardWorthCastingFirst(final Player ai, final SpellAbility timetwisterSa) {
+            final Card timetwisterSource = timetwisterSa.getHostCard();
+            final int totalManaAvailable = ComputerUtilMana.getAvailableManaEstimate(ai, false);
+            final int timetwisterCMC = timetwisterSa.getPayCosts() != null
+                    && timetwisterSa.getPayCosts().getTotalMana() != null
+                    ? timetwisterSa.getPayCosts().getTotalMana().getCMC()
+                    : 0;
+
+            for (Card c : ai.getCardsIn(ZoneType.Hand)) {
+                if (c.equals(timetwisterSource) || c.isLand()) {
+                    continue;
+                }
+                for (SpellAbility ability : c.getSpellAbilities()) {
+                    if (!ability.isSpell()) {
+                        continue;
+                    }
+                    if (!ability.canCastTiming(ai)) {
+                        continue;
+                    }
+                    ability.setActivatingPlayer(ai, true);
+                    if (!ComputerUtilCost.canPayCost(ability, ai, false)) {
+                        continue;
+                    }
+                    final int otherCMC = ability.getPayCosts() != null
+                            && ability.getPayCosts().getTotalMana() != null
+                            ? ability.getPayCosts().getTotalMana().getCMC()
+                            : 0;
+                    // After casting this other card, we still want enough mana to cast Timetwister afterwards.
+                    if (otherCMC + timetwisterCMC <= totalManaAvailable) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
     }
 

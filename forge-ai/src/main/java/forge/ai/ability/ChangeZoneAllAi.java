@@ -90,8 +90,8 @@ public class ChangeZoneAllAi extends SpellAbilityAi {
         if ("LivingDeath".equals(aiLogic)) {
             // Living Death AI
             return SpecialCardAi.LivingDeath.consider(ai, sa);
-        } else if ("Timetwister".equals(aiLogic)) {
-            // Timetwister AI
+        } else if ("Timetwister".equalsIgnoreCase(aiLogic)) {
+            // Timetwister / TimeTwister AI (matches both spellings used in card files)
             return SpecialCardAi.Timetwister.consider(ai, sa);
         } else if ("RetDiscardedThisTurn".equals(aiLogic)) {
             // e.g. Shadow of the Grave

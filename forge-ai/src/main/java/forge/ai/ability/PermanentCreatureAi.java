@@ -13,6 +13,7 @@ import forge.ai.ComputerUtilCost;
 import forge.ai.PlayerControllerAi;
 import forge.card.mana.ManaCost;
 import forge.game.Game;
+import forge.game.ability.AbilityUtils;
 import forge.game.ability.ApiType;
 import forge.game.card.Card;
 import forge.game.card.CardLists;
@@ -238,9 +239,98 @@ public class PermanentCreatureAi extends PermanentAi {
         final Card copy = CardUtil.getLKICopy(card);
         ComputerUtilCard.applyStaticContPT(game, copy, null);
         if (copy.getNetToughness() > 0) {
+            // Defer casting this creature if an opposing permanent can already
+            // remove it (e.g. an Icatian Javelineers in play) AND the AI has
+            // a removal spell in hand that could destroy that threat first.
+            if (shouldDeferCreatureToHandleThreat(ai, sa, copy)) {
+                return false;
+            }
             return true;
         }
 
+        return false;
+    }
+
+    /**
+     * Returns true when this creature would be killed by an existing opponent
+     * permanent (via a damage activated ability or static damage effect) and
+     * the AI has removal in hand that could neutralize that threat instead.
+     * In that case we prefer to spend this priority pass on the removal so the
+     * creature survives once it is finally cast.
+     */
+    private static boolean shouldDeferCreatureToHandleThreat(final Player ai, final SpellAbility sa, final Card creatureLKI) {
+        final int toughness = creatureLKI.getNetToughness();
+        if (toughness <= 0) {
+            return false;
+        }
+        for (Player opp : ai.getOpponents()) {
+            for (Card threat : opp.getCardsIn(ZoneType.Battlefield)) {
+                Integer dmgFromThreat = damagePotentialAgainstAiCreature(threat);
+                if (dmgFromThreat == null || dmgFromThreat < toughness) {
+                    continue;
+                }
+                // This threat can kill our creature once cast; check if AI has
+                // a removal spell in hand that can deal with the threat first.
+                if (hasRemovalSpellInHandFor(ai, sa, threat)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static Integer damagePotentialAgainstAiCreature(final Card threat) {
+        int best = -1;
+        for (SpellAbility ab : threat.getSpellAbilities()) {
+            if (ab.getApi() != ApiType.DealDamage || !ab.isAbility()) {
+                continue;
+            }
+            String numDmg = ab.getParam("NumDmg");
+            if (numDmg == null) {
+                continue;
+            }
+            String validTgts = ab.getParam("ValidTgts");
+            // Must be able to target a creature controlled by an opponent of the threat.
+            if (validTgts != null
+                    && !validTgts.contains("Any")
+                    && !validTgts.contains("Creature")) {
+                continue;
+            }
+            int dmg = AbilityUtils.calculateAmount(threat, numDmg, ab);
+            if (dmg > best) {
+                best = dmg;
+            }
+        }
+        return best >= 0 ? best : null;
+    }
+
+    private static boolean hasRemovalSpellInHandFor(final Player ai, final SpellAbility currentSa, final Card threat) {
+        final int threatToughness = Math.max(1, threat.getNetToughness());
+        final Card currentSource = currentSa.getHostCard();
+        for (Card c : ai.getCardsIn(ZoneType.Hand)) {
+            if (c.equals(currentSource) || c.isLand()) {
+                continue;
+            }
+            for (SpellAbility ab : c.getSpellAbilities()) {
+                if (!ab.isSpell() || ab.getApi() != ApiType.DealDamage) {
+                    continue;
+                }
+                String numDmg = ab.getParam("NumDmg");
+                if (numDmg == null) {
+                    continue;
+                }
+                int abDmg = numDmg.equals("X")
+                        ? ComputerUtilCost.getMaxXValue(ab, ai, false)
+                        : AbilityUtils.calculateAmount(c, numDmg, ab);
+                if (abDmg < threatToughness) {
+                    continue;
+                }
+                ab.setActivatingPlayer(ai, true);
+                if (ComputerUtilCost.canPayCost(ab, ai, false)) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 

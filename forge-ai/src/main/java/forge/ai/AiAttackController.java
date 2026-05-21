@@ -461,12 +461,21 @@ public class AiAttackController {
                         ownAttackerDmg *= 2;
                     }
                     ownAttackerDmg += thresholdMod;
+                    final int lifeDiff = Math.abs(currentBaselineLife - lastAcceptableBaselineLife);
+                    // Comfortable-life override: when the AI has plenty of life headroom, a single
+                    // attack step's adverse life trade isn't a real threat -- holding back a
+                    // valuable unblockable attacker (e.g. a 3/4 flyer vs only ground blockers)
+                    // just to gain a couple of life points is bad tempo. Allow such attacks when
+                    // the AI's life total comfortably absorbs the predicted counter-attack.
+                    boolean comfortableLife = ai.getLife() >= 10
+                            && ai.getLife() > lifeDiff * 3
+                            && !ComputerUtil.aiLifeInDanger(ai, false, 0);
                     // bail if it would cause AI more life loss from counterattack than the damage it provides as attacker
-                    if (Math.abs(currentBaselineLife - lastAcceptableBaselineLife) > ownAttackerDmg) {
+                    if (lifeDiff > ownAttackerDmg && !comfortableLife) {
                         notNeededAsBlockers.remove(c);
                         // try find more
                         continue;
-                    } else if (Math.abs(currentBaselineLife - lastAcceptableBaselineLife) == ownAttackerDmg) {
+                    } else if (lifeDiff == ownAttackerDmg) {
                         // TODO add non sim-AI property for life trade chance that scales down with amount and when difference increases
                     }
                     lastAcceptableBaselineLife = currentBaselineLife;

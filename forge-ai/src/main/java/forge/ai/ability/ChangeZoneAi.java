@@ -2,6 +2,7 @@ package forge.ai.ability;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -1806,7 +1807,16 @@ public class ChangeZoneAi extends SpellAbilityAi {
                     c = ComputerUtilCard.getBestLandAI(fetchList);
                 } else {
                     fetchList = CardLists.getNotType(fetchList, "Land");
-                    if (isReanimator) {
+                    // Before falling back to "prefer a creature", check whether
+                    // the library contains a known power spell (Ancestral Recall,
+                    // Time Walk, Yawgmoth's Will, Necropotence, etc.). Tutoring
+                    // up a vanilla creature when an actual bomb is available is
+                    // a major value loss — Demonic Tutor / Vampiric Tutor /
+                    // Diabolic Intent style effects should grab the bomb first.
+                    Card bomb = pickPowerSpellFromTutor(decider, fetchList);
+                    if (bomb != null) {
+                        c = bomb;
+                    } else if (isReanimator) {
                         // In reanimator decks, never tutor for a creature — they belong in the graveyard
                         c = ComputerUtilCard.getBestAI(CardLists.filter(fetchList, Predicates.not(Presets.CREATURES)));
                     } else {
@@ -1835,6 +1845,61 @@ public class ChangeZoneAi extends SpellAbilityAi {
             c = first;
         }
         return c;
+    }
+
+    /**
+     * Curated list of cards that are almost always the correct tutor target if
+     * they are in the searchable zone and the AI can cast them. These are
+     * blue-chip "power" spells whose effect dwarfs anything a vanilla creature
+     * or generic spell can provide.
+     */
+    private static final Set<String> POWER_TUTOR_TARGETS = ImmutableSet.of(
+            "Ancestral Recall",
+            "Time Walk",
+            "Yawgmoth's Will",
+            "Necropotence",
+            "Black Lotus",
+            "Mox Sapphire",
+            "Mox Jet",
+            "Mox Ruby",
+            "Mox Pearl",
+            "Mox Emerald",
+            "Sol Ring",
+            "Demonic Tutor",
+            "Mind Twist",
+            "Tinker",
+            "Channel",
+            "Mana Drain",
+            "Wheel of Fortune",
+            "Balance",
+            "Mana Vault");
+
+    private static Card pickPowerSpellFromTutor(Player decider, CardCollection fetchList) {
+        CardCollection bombs = CardLists.filter(fetchList, new Predicate<Card>() {
+            @Override
+            public boolean apply(final Card card) {
+                return POWER_TUTOR_TARGETS.contains(card.getName());
+            }
+        });
+        if (bombs.isEmpty()) {
+            return null;
+        }
+        // Prefer a bomb the AI can actually cast soon. Fall back to any bomb if
+        // none are castable right now (it'll still be the best card to keep in hand).
+        for (Card bomb : bombs) {
+            SpellAbility first = bomb.getFirstSpellAbility();
+            if (first == null) {
+                continue;
+            }
+            if (bomb.getManaCost() != null && bomb.getManaCost().isNoCost()) {
+                return bomb;
+            }
+            if (ComputerUtilMana.hasEnoughManaSourcesToCast(first, decider)) {
+                return bomb;
+            }
+        }
+        // Nothing castable now — still pick the strongest bomb so we have it for later.
+        return ComputerUtilCard.getBestAI(bombs);
     }
 
     private static CardCollection prefilterOwnListForBounceAnyNum(CardCollection fetchList, Player decider) {

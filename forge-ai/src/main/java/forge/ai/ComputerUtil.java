@@ -1292,7 +1292,69 @@ public class ComputerUtil {
                 return true;
             }
         }
+
+        // Racing override: when our creatures already out-clock the opponent's
+        // and we have a comfortable life buffer, deploy an evasive threat
+        // immediately in Main1 to start damage the same turn rather than
+        // waiting for Main2 (which sometimes never resolves due to changing
+        // priorities). Without this, big fliers like Sengir Vampire can stall
+        // in hand while a clearly winning race goes unfought.
+        if (card.isCreature() && isWinningRaceWithEvasion(ai, card)) {
+            return true;
+        }
+
         return false;
+    }
+
+    private static boolean isWinningRaceWithEvasion(final Player ai, final Card creature) {
+        // Must be evasive enough to actually contribute to a race even with
+        // blockers on the table.
+        boolean evasive = creature.hasKeyword(Keyword.FLYING)
+                || creature.hasKeyword(Keyword.SHADOW)
+                || creature.hasKeyword(Keyword.FEAR)
+                || creature.hasKeyword(Keyword.INTIMIDATE)
+                || creature.hasKeyword(Keyword.HORSEMANSHIP)
+                || creature.hasKeyword(Keyword.SKULK)
+                || creature.hasKeyword("Unblockable");
+        if (!evasive) {
+            return false;
+        }
+        if (creature.getNetPower() <= 0) {
+            return false;
+        }
+
+        // Compute our offensive clock vs opponent's offensive clock.
+        int ourClock = creature.getNetPower();
+        for (Card c : ai.getCreaturesInPlay()) {
+            if (c.hasKeyword(Keyword.DEFENDER) || ComputerUtilCard.isUselessCreature(ai, c)) {
+                continue;
+            }
+            ourClock += Math.max(0, c.getNetPower());
+        }
+
+        int oppBestClock = 0;
+        Player opp = ai.getWeakestOpponent();
+        if (opp == null) {
+            return false;
+        }
+        for (Card c : opp.getCreaturesInPlay()) {
+            if (c.hasKeyword(Keyword.DEFENDER) || ComputerUtilCard.isUselessCreature(opp, c)) {
+                continue;
+            }
+            oppBestClock += Math.max(0, c.getNetPower());
+        }
+
+        if (ourClock <= oppBestClock) {
+            return false;
+        }
+
+        // Must have enough life cushion to survive at least one more round of
+        // opponent attacks while we deliver our own.
+        if (ai.getLife() <= oppBestClock) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

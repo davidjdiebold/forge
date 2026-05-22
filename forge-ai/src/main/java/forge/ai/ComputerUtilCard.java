@@ -1335,6 +1335,34 @@ public class ComputerUtilCard {
         if (valueNow < 0.2) { //hard floor to reduce ridiculous odds for instants over time
             return false;
         }
+
+        // Don't burn premium removal on a non-threatening creature when the AI's
+        // life is comfortable and the spell can still go to the opponent's face.
+        // This stops things like Lightning Bolt being fired at a depleted 1/1
+        // Triskelion or other vanilla 1-power chump when there is no urgency.
+        if (c.isCreature()
+                && sa.getTargetRestrictions() != null
+                && sa.getTargetRestrictions().canTgtPlayer()
+                && ai.getLife() > 10
+                && c.getNetPower() <= 1
+                && evaluateCreature(c) < 200
+                && !c.hasKeyword(Keyword.LIFELINK)
+                && !c.hasKeyword(Keyword.INFECT)
+                && !c.hasKeyword(Keyword.DEATHTOUCH)
+                && !c.hasKeyword(Keyword.WITHER)) {
+            boolean hasDangerousActivatedAbility = false;
+            for (SpellAbility ab : c.getSpellAbilities()) {
+                // any non-mana activated ability that costs only mana / tap is suspect
+                if (ab.isAbility() && ab.getApi() != ApiType.Mana) {
+                    hasDangerousActivatedAbility = true;
+                    break;
+                }
+            }
+            if (!hasDangerousActivatedAbility && valueNow < 0.7) {
+                return false;
+            }
+        }
+
         final float chance = MyRandom.getRandom().nextFloat();
         return chance < valueNow;
     }

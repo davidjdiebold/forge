@@ -3,5 +3,10 @@ ManaCost:2
 Types:Artifact
 T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Land | TriggerZones$ Battlefield | Execute$ TrigDamage | TriggerDescription$ Whenever a land enters the battlefield, CARDNAME deals 2 damage to that land's controller.
 SVar:TrigDamage:DB$ DealDamage | Defined$ TriggeredCardController | NumDmg$ 2
+# Symmetric "tax" effects like Ankh of Mishra are dramatically more valuable
+# the earlier they hit the battlefield, since they trigger on every future
+# land drop by both players. Without this modifier the generic ranker prefers
+# any 3+ CMC creature over Ankh, causing the AI to delay (or never play) it.
+SVar:AIPriorityModifier:9
 AI:RemoveDeck:Random
 Oracle:Whenever a land enters the battlefield, Ankh of Mishra deals 2 damage to that land's controller.

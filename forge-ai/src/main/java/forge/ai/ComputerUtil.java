@@ -67,6 +67,7 @@ import forge.game.replacement.ReplacementEffect;
 import forge.game.replacement.ReplacementLayer;
 import forge.game.replacement.ReplacementType;
 import forge.game.spellability.AbilitySub;
+import forge.game.spellability.AbilityManaPart;
 import forge.game.spellability.SpellAbility;
 import forge.game.spellability.SpellAbilityStackInstance;
 import forge.game.spellability.TargetRestrictions;
@@ -2234,6 +2235,19 @@ public class ComputerUtil {
 
         score += castables.size() * 2;
 
+        // Filter castables to those whose colored mana requirements can actually
+        // be met by the colors produced by the lands/mana-artifacts currently in
+        // hand. This prevents the AI from keeping hands like "1 Mox Emerald + 6
+        // non-green spells" where the lone mana source can't power anything.
+        final byte availableColors = computeAvailableHandColors(lands);
+        final CardCollectionView colorCastables = CardLists.filter(castables, new Predicate<Card>() {
+            @Override
+            public boolean apply(final Card c) {
+                final byte needed = c.getManaCost().getColorProfile();
+                return needed == 0 || (needed & availableColors) == needed;
+            }
+        });
+
         // Improve score for perceived mana efficiency of the hand
 
         // if at mulligan threshold, and we have any lands accept the hand
@@ -2244,7 +2258,7 @@ public class ComputerUtil {
         // otherwise, reject bad hands or return score
         if (landSize < 2) {
             // BAD Hands, 0 or 1 lands
-            if (landsInDeck == 0 || library.size()/landsInDeck > 6 || castables.size()>=2) {
+            if (landsInDeck == 0 || library.size()/landsInDeck > 6 || colorCastables.size()>=2) {
                 // Heavy spell deck it's ok
                 return handSize;
             }
@@ -2270,6 +2284,38 @@ public class ComputerUtil {
     public static boolean wantMulligan(Player ai, int cardsToReturn) {
         final CardCollectionView handList = ai.getCardsIn(ZoneType.Hand);
         return !handList.isEmpty() && scoreHand(handList, ai, cardsToReturn) <= 0;
+    }
+
+    /**
+     * Returns a color mask (bitwise OR of MagicColor.WHITE..GREEN) representing
+     * the colors that the given mana sources (typically lands and 0-cost mana
+     * artifacts already in hand) can produce. Any source producing "Any" or
+     * "ALL" mana counts as all five colors. Used at mulligan time to verify
+     * that the spells in hand are not just CMC-affordable but also color-castable.
+     */
+    private static byte computeAvailableHandColors(Iterable<Card> manaSources) {
+        byte mask = 0;
+        for (Card src : manaSources) {
+            for (SpellAbility sa : src.getManaAbilities()) {
+                AbilityManaPart mp = sa.getManaPart();
+                if (mp == null) {
+                    continue;
+                }
+                String produced = mp.getOrigProduced();
+                if (produced == null || produced.isEmpty()) {
+                    continue;
+                }
+                if (produced.contains("Any") || produced.contains("ALL")) {
+                    return MagicColor.ALL_COLORS;
+                }
+                if (produced.contains("W")) mask |= MagicColor.WHITE;
+                if (produced.contains("U")) mask |= MagicColor.BLUE;
+                if (produced.contains("B")) mask |= MagicColor.BLACK;
+                if (produced.contains("R")) mask |= MagicColor.RED;
+                if (produced.contains("G")) mask |= MagicColor.GREEN;
+            }
+        }
+        return mask;
     }
 
     public static CardCollection getPartialParisCandidates(Player ai) {

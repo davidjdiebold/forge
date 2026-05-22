@@ -598,40 +598,58 @@ public class AttachAi extends SpellAbilityAi {
 
         //TODO for Reanimate Auras i need the new Attach Spell, in later versions it might be part of the Enchant Keyword
         attachSourceLki.addSpellAbility(AbilityFactory.getAbility(attachSourceLki, "NewAttach"));
-        List<Card> betterList = CardLists.filter(list, new Predicate<Card>() {
-            @Override
-            public boolean apply(final Card c) {
-                final Card lki = CardUtil.getLKICopy(c);
-                // need to fake it as if lki would be on the battlefield
-                lki.setLastKnownZone(ai.getZone(ZoneType.Battlefield));
 
-                // Reanimate Auras use "Enchant creature put onto the battlefield with CARDNAME" with Remembered
-                attachSourceLki.clearRemembered();
-                attachSourceLki.addRemembered(lki);
+        // Evaluate candidates AS IF reanimated and attached, so debuffs like Animate
+        // Dead's "-1/-0" are factored into the comparison. The chosen creature
+        // should be the best post-attach option, not the best printed card.
+        Card best = null;
+        int bestEval = Integer.MIN_VALUE;
+        for (Card c : list) {
+            final Card lki = CardUtil.getLKICopy(c);
+            // need to fake it as if lki would be on the battlefield
+            lki.setLastKnownZone(ai.getZone(ZoneType.Battlefield));
 
-                // need to check what the cards would be on the battlefield
-                // do not attach yet, that would cause Events
-                CardCollection preList = new CardCollection(lki);
-                preList.add(attachSourceLki);
-                c.getGame().getAction().checkStaticAbilities(false, Sets.newHashSet(preList), preList);
-                boolean result = lki.canBeAttached(attachSourceLki, null);
+            // Reanimate Auras use "Enchant creature put onto the battlefield with CARDNAME" with Remembered
+            attachSourceLki.clearRemembered();
+            attachSourceLki.addRemembered(lki);
 
-                //reset static abilities
-                c.getGame().getAction().checkStaticAbilities(false);
+            // need to check what the cards would be on the battlefield
+            // do not attach yet, that would cause Events
+            CardCollection preList = new CardCollection(lki);
+            preList.add(attachSourceLki);
+            c.getGame().getAction().checkStaticAbilities(false, Sets.newHashSet(preList), preList);
+            boolean attachable = lki.canBeAttached(attachSourceLki, null);
 
-                return result;
+            int eval = attachable ? ComputerUtilCard.evaluateCreature(lki) : Integer.MIN_VALUE;
+
+            //reset static abilities
+            c.getGame().getAction().checkStaticAbilities(false);
+
+            if (!attachable) {
+                continue;
             }
-        });
+            if (eval > bestEval) {
+                bestEval = eval;
+                best = c;
+            }
+        }
 
-        final Card c = ComputerUtilCard.getBestCreatureAI(betterList);
+        // Value floor: don't reanimate a weak creature voluntarily — wait until
+        // a bigger threat hits the graveyard. The threshold roughly corresponds
+        // to a 2/2-or-better post-attach body (vanilla 2/2 ≈ 160). Mandatory
+        // executions still pick something (existing fallback below).
+        final int REANIMATE_MIN_EVAL = 160;
+        if (!mandatory && (best == null || bestEval < REANIMATE_MIN_EVAL)) {
+            return null;
+        }
 
         // If Mandatory (brought directly into play without casting) gotta
         // choose something
-        if (c == null && mandatory) {
+        if (best == null && mandatory) {
             return chooseLessPreferred(mandatory, list);
         }
 
-        return c;
+        return best;
     }
 
     // Cards that trigger on dealing damage

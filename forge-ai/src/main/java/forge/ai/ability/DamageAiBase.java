@@ -105,6 +105,14 @@ public abstract class DamageAiBase extends SpellAbilityAi {
             return true;
         }
 
+        // If we have a hand-reshuffle effect like Timetwister or Wheel of
+        // Fortune in hand, any burn spell still in our hand would otherwise be
+        // shuffled into our library. Dump it at the opponent's face for chip
+        // damage rather than losing the card to the refresh.
+        if (sa.isSpell() && hasHandRefreshInHand(comp)) {
+            return true;
+        }
+
         if (sa.isSpell()) {
             PhaseHandler phase = game.getPhaseHandler();
             // If this is a spell, cast it instead of discarding
@@ -149,6 +157,39 @@ public abstract class DamageAiBase extends SpellAbilityAi {
             }
         }
 
+        return false;
+    }
+
+    /**
+     * Returns true if the AI's hand contains a card whose AI logic is a
+     * full-hand refresh effect (Timetwister / Wheel of Fortune style). Any
+     * spell still in hand when those resolve is shuffled into the library, so
+     * we prefer to spend cheap burn at the opponent's face beforehand even if
+     * the standard heuristics would otherwise hold the card.
+     */
+    protected static boolean hasHandRefreshInHand(final Player comp) {
+        for (Card c : comp.getCardsIn(ZoneType.Hand)) {
+            for (SpellAbility ability : c.getSpellAbilities()) {
+                if (!ability.isSpell()) {
+                    continue;
+                }
+                String aiLogic = ability.getParam("AILogic");
+                if (aiLogic == null) {
+                    continue;
+                }
+                if ("Timetwister".equalsIgnoreCase(aiLogic)
+                        || "Wheel of Fortune".equalsIgnoreCase(aiLogic)) {
+                    return true;
+                }
+            }
+            // Fallback to canonical names in case the AILogic param is missing
+            String name = c.getName();
+            if ("Timetwister".equalsIgnoreCase(name)
+                    || "Wheel of Fortune".equalsIgnoreCase(name)
+                    || "Windfall".equalsIgnoreCase(name)) {
+                return true;
+            }
+        }
         return false;
     }
 }

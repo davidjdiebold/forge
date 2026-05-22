@@ -22,7 +22,17 @@ public class FlipOntoBattlefieldAi extends SpellAbilityAi {
         String logic = sa.getParamOrDefault("AILogic", "");
 
         if (!isSorcerySpeed(sa, aiPlayer) && sa.getPayCosts().hasManaCost()) {
-            return ph.is(PhaseType.END_OF_TURN);
+            // Default behavior was to only fire at end-of-turn so the AI waits
+            // for the best opportunity. That made Chaos Orb-style cards useless
+            // when a real threat (e.g. an opposing 4/7) had to be answered
+            // during the AI's own turn. Allow activation during the AI's own
+            // main phases as well, so we can remove threats proactively before
+            // the opponent untaps and attacks.
+            if (!ph.is(PhaseType.END_OF_TURN)
+                    && !(ph.isPlayerTurn(aiPlayer)
+                            && (ph.is(PhaseType.MAIN1) || ph.is(PhaseType.MAIN2)))) {
+                return false;
+            }
         }
 
         if ("DamageCreatures".equals(logic)) {

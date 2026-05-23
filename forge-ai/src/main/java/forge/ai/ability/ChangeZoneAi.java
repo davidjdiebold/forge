@@ -1884,22 +1884,126 @@ public class ChangeZoneAi extends SpellAbilityAi {
         if (bombs.isEmpty()) {
             return null;
         }
-        // Prefer a bomb the AI can actually cast soon. Fall back to any bomb if
-        // none are castable right now (it'll still be the best card to keep in hand).
+        // Score each bomb in the current game context (creature count, hand
+        // size, etc.) and pick the highest scorer that is also castable. We
+        // need explicit scoring because Demonic Tutor's filtered list arrives
+        // in shuffled order; without it, Time Walk might be returned even when
+        // the AI has nothing to attack with and Ancestral Recall would be the
+        // strictly better grab.
+        Card bestCastable = null;
+        int bestCastableScore = Integer.MIN_VALUE;
+        Card bestAny = null;
+        int bestAnyScore = Integer.MIN_VALUE;
+
         for (Card bomb : bombs) {
+            int score = scorePowerTutorBomb(bomb, decider);
+            if (score > bestAnyScore) {
+                bestAnyScore = score;
+                bestAny = bomb;
+            }
             SpellAbility first = bomb.getFirstSpellAbility();
-            if (first == null) {
-                continue;
+            boolean castable = false;
+            if (first != null) {
+                if (bomb.getManaCost() != null && bomb.getManaCost().isNoCost()) {
+                    castable = true;
+                } else {
+                    first.setActivatingPlayer(decider, true);
+                    castable = ComputerUtilMana.hasEnoughManaSourcesToCast(first, decider);
+                }
             }
-            if (bomb.getManaCost() != null && bomb.getManaCost().isNoCost()) {
-                return bomb;
-            }
-            if (ComputerUtilMana.hasEnoughManaSourcesToCast(first, decider)) {
-                return bomb;
+            if (castable && score > bestCastableScore) {
+                bestCastableScore = score;
+                bestCastable = bomb;
             }
         }
-        // Nothing castable now — still pick the strongest bomb so we have it for later.
-        return ComputerUtilCard.getBestAI(bombs);
+        return bestCastable != null ? bestCastable : bestAny;
+    }
+
+    /**
+     * Heuristic score for the curated POWER_TUTOR_TARGETS list. Higher = more
+     * desirable as a tutor target right now. The score is context-aware so
+     * cards like Time Walk are deprioritized when the AI has no creatures to
+     * benefit from the extra turn, while card-draw bombs (Ancestral Recall)
+     * stay strong regardless.
+     */
+    private static int scorePowerTutorBomb(final Card bomb, final Player decider) {
+        final String name = bomb.getName();
+        final int aiCreatures = decider.getCreaturesInPlay().size();
+        final int aiHandSize = decider.getCardsIn(ZoneType.Hand).size();
+
+        switch (name) {
+            case "Ancestral Recall":
+                // 3 cards for U — always excellent, even more so when the AI
+                // has few cards in hand.
+                return 1000 + Math.max(0, 7 - aiHandSize) * 10;
+            case "Time Walk":
+                // Extra turn is only valuable if we have a board to swing with.
+                // No creatures? Then we mostly just untap for another land drop
+                // — much weaker than an Ancestral Recall.
+                if (aiCreatures == 0) {
+                    return 600;
+                }
+                return 950 + aiCreatures * 20;
+            case "Yawgmoth's Will":
+                // Hugely powerful in mid-late game with stuff in graveyard.
+                int graveSize = decider.getCardsIn(ZoneType.Graveyard).size();
+                return graveSize >= 4 ? 980 : 700;
+            case "Necropotence":
+                return aiHandSize <= 3 ? 950 : 800;
+            case "Black Lotus":
+                return 990;
+            case "Sol Ring":
+                return 920;
+            case "Mox Sapphire":
+            case "Mox Jet":
+            case "Mox Ruby":
+            case "Mox Pearl":
+            case "Mox Emerald":
+                return 900;
+            case "Mana Vault":
+                return 850;
+            case "Wheel of Fortune":
+                return aiHandSize <= 2 ? 940 : 820;
+            case "Windfall":
+                return aiHandSize <= 2 ? 880 : 760;
+            case "Balance":
+                // Best when opp has more creatures/cards than we do.
+                int oppCreatures = 0;
+                int oppHand = 0;
+                for (Player opp : decider.getOpponents()) {
+                    oppCreatures = Math.max(oppCreatures, opp.getCreaturesInPlay().size());
+                    oppHand = Math.max(oppHand, opp.getCardsIn(ZoneType.Hand).size());
+                }
+                if (oppCreatures > aiCreatures + 1 || oppHand > aiHandSize + 2) {
+                    return 970;
+                }
+                return 700;
+            case "Mind Twist":
+                // Random discard — better when opp has a big hand.
+                int maxOppHand = 0;
+                for (Player opp : decider.getOpponents()) {
+                    maxOppHand = Math.max(maxOppHand, opp.getCardsIn(ZoneType.Hand).size());
+                }
+                return 600 + maxOppHand * 20;
+            case "Demonic Tutor":
+                return 850;
+            case "Tinker":
+                // Needs an artifact to sacrifice; if none, deprioritize.
+                boolean hasArtifact = false;
+                for (Card c : decider.getCardsIn(ZoneType.Battlefield)) {
+                    if (c.isArtifact() && !c.isLand()) {
+                        hasArtifact = true;
+                        break;
+                    }
+                }
+                return hasArtifact ? 870 : 500;
+            case "Channel":
+                return 800;
+            case "Mana Drain":
+                return 700;
+            default:
+                return 500;
+        }
     }
 
     private static CardCollection prefilterOwnListForBounceAnyNum(CardCollection fetchList, Player decider) {

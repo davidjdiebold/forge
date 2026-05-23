@@ -3,4 +3,9 @@ ManaCost:B B B
 Types:Enchantment
 T:Mode$ Drawn | ValidCard$ Card.OppOwn | TriggerZones$ Battlefield | Execute$ TrigDamage | TriggerDescription$ Whenever an opponent draws a card, CARDNAME deals 1 damage to that player.
 SVar:TrigDamage:DB$ DealDamage | Defined$ TriggeredPlayer | NumDmg$ 1
+# Punisher enchantments are vastly stronger if they hit the battlefield before
+# any hand-refresh effect (Wheel of Fortune, Timetwister, Windfall), which
+# turn one cast into 7+ free damage. Without this bump the saComparator can
+# pick the refresh first and waste the entire combo.
+SVar:AIPriorityModifier:9
 Oracle:Whenever an opponent draws a card, Underworld Dreams deals 1 damage to that player.

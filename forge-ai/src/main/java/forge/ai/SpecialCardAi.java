@@ -1670,8 +1670,54 @@ public class SpecialCardAi {
                 return false;
             }
 
+            // If we have a "punisher" enchantment in hand (Underworld Dreams,
+            // Spiteful Visions, etc.) that punishes draws, defer Timetwister
+            // so we can land the punisher first — it turns the 7-card refresh
+            // into 7+ free damage to the opponent.
+            if (hasUnplayedDrawPunisherInHand(ai, sa.getHostCard())) {
+                return false;
+            }
+
             // use in case we're getting low on cards or if we're significantly behind our opponent in cards in hand
             return aiHandSize < HAND_SIZE_THRESHOLD || maxOppHandSize - aiHandSize > HAND_SIZE_THRESHOLD;
+        }
+
+        /**
+         * Returns true if the AI's hand contains a punisher card whose effect
+         * triggers when an opponent draws (e.g. Underworld Dreams). Used to
+         * defer hand-refresh effects like Timetwister or Wheel of Fortune so
+         * the punisher resolves first.
+         */
+        public static boolean hasUnplayedDrawPunisherInHand(final Player ai, final Card selfHost) {
+            for (Card c : ai.getCardsIn(ZoneType.Hand)) {
+                if (c.equals(selfHost) || c.isLand()) {
+                    continue;
+                }
+                if (isDrawPunisherCard(c)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static boolean isDrawPunisherCard(final Card c) {
+            final String name = c.getName();
+            if ("Underworld Dreams".equalsIgnoreCase(name)
+                    || "Spiteful Visions".equalsIgnoreCase(name)
+                    || "Psychic Spiral".equalsIgnoreCase(name)) {
+                return true;
+            }
+            // Heuristic: any card whose triggers fire on "Drawn" by an opponent.
+            for (forge.game.trigger.Trigger t : c.getTriggers()) {
+                if (t.getMode() != forge.game.trigger.TriggerType.Drawn) {
+                    continue;
+                }
+                String validCard = t.getParam("ValidCard");
+                if (validCard != null && (validCard.contains("OppOwn") || validCard.contains("Opponent"))) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static boolean hasPlayableHandCardWorthCastingFirst(final Player ai, final SpellAbility timetwisterSa) {

@@ -44,6 +44,18 @@ public class DiscardAi extends SpellAbilityAi {
             return MyRandom.getRandom().nextFloat() < (1.0 / (1 + hand));
         }
 
+        // Hand-refresh spells like Wheel of Fortune and Windfall (each player
+        // discards their hand and draws 7) should be deferred when the AI has
+        // an unplayed draw-punisher in hand (Underworld Dreams etc.) — get
+        // the punisher down first so the 7-card refresh hits the opponent
+        // for free damage on every drawn card.
+        if (("Wheel of Fortune".equals(sourceName)
+                || "Windfall".equals(sourceName)
+                || "Reforge the Soul".equals(sourceName))
+                && SpecialCardAi.Timetwister.hasUnplayedDrawPunisherInHand(ai, source)) {
+            return false;
+        }
+
         if (aiLogic.equals("VolrathsShapeshifter")) {
             return SpecialCardAi.VolrathsShapeshifter.consider(ai, sa);
         }

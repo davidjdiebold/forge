@@ -27,6 +27,8 @@ import forge.game.spellability.SpellAbility;
 import forge.game.spellability.TargetChoices;
 import forge.game.spellability.TargetRestrictions;
 import forge.game.staticability.StaticAbilityMustTarget;
+import forge.game.trigger.Trigger;
+import forge.game.trigger.TriggerType;
 import forge.game.zone.ZoneType;
 import forge.util.Aggregates;
 import forge.util.MyRandom;
@@ -383,6 +385,69 @@ public class DamageDealAi extends DamageAiBase {
      * defer wasting a high-damage spell like Psionic Blast on a 1-toughness
      * creature when an Icatian Javelineers (or similar) could handle it.
      */
+    /**
+     * Returns a "must remove first" creature from the killable list — typically
+     * a card whose combat-damage-to-player trigger generates ongoing card
+     * advantage or attrition for the opponent (Hypnotic Specter style
+     * discard, lifeloss + discard, library mill, etc.). These threats are
+     * undervalued by the vanilla creature evaluator (raw P/T + keywords),
+     * so we promote them explicitly here.
+     */
+    private static Card pickPriorityRemovalTarget(final Iterable<Card> killables) {
+        Card best = null;
+        int bestScore = 0;
+        for (Card c : killables) {
+            int score = priorityRemovalScore(c);
+            if (score > bestScore) {
+                bestScore = score;
+                best = c;
+            }
+        }
+        return best;
+    }
+
+    private static int priorityRemovalScore(final Card c) {
+        int score = 0;
+        for (Trigger t : c.getTriggers()) {
+            if (t.getMode() != TriggerType.DamageDone) {
+                continue;
+            }
+            // Only count triggers that fire when this creature deals damage,
+            // generally to a player (combat damage triggers like Hypnotic
+            // Specter's discard, Hellfire Sliver's lifeloss, etc.).
+            String validSource = t.getParam("ValidSource");
+            if (validSource != null && !validSource.contains("Self") && !validSource.contains("Card.Self")) {
+                continue;
+            }
+            String validTarget = t.getParam("ValidTarget");
+            if (validTarget != null && !validTarget.contains("Player") && !validTarget.contains("Opponent")) {
+                continue;
+            }
+            SpellAbility exec = t.ensureAbility();
+            if (exec == null) {
+                continue;
+            }
+            ApiType api = exec.getApi();
+            if (api == ApiType.Discard
+                    || api == ApiType.LoseLife
+                    || api == ApiType.Mill
+                    || api == ApiType.DealDamage
+                    || api == ApiType.Sacrifice
+                    || api == ApiType.ChangeZone) {
+                score += 50;
+            } else {
+                score += 20;
+            }
+        }
+        // Flying-with-trigger threats (Hypnotic Specter, Vampire Nighthawk
+        // style) are particularly hard to remove via combat and deserve an
+        // extra bump.
+        if (score > 0 && c.hasKeyword(Keyword.FLYING)) {
+            score += 25;
+        }
+        return score;
+    }
+
     private static boolean allCreatureTargetsAreOverkilledWithAlternative(final Player ai, final SpellAbility sa, final int dmg) {
         if (dmg <= 1) {
             return false; // can't be overkill if we deal 1 or less
@@ -540,7 +605,16 @@ public class DamageDealAi extends DamageAiBase {
                 targetCard = ComputerUtilCard.getBestPlaneswalkerAI(killables);
             }
             if (targetCard == null) {
-                targetCard = ComputerUtilCard.getBestCreatureAI(killables);
+                // Before picking the "best" creature by raw evaluator score,
+                // give priority to creatures with damage-on-player triggers
+                // that punish the AI (Hypnotic Specter's discard, Juzam's
+                // lifeloss-then-discard style, etc.). Vanilla evaluators
+                // undervalue such 2/2 fliers, leaving them in play for free
+                // card advantage.
+                Card priority = pickPriorityRemovalTarget(killables);
+                targetCard = priority != null
+                        ? priority
+                        : ComputerUtilCard.getBestCreatureAI(killables);
             }
 
             return targetCard;

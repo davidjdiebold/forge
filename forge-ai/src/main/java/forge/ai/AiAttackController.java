@@ -1283,6 +1283,20 @@ public class AiAttackController {
             aiAggression = 0;
         } // stay at home to block
 
+        // If the opponent controls an ongoing card-attrition threat (e.g.
+        // Hypnotic Specter discarding our hand each time it connects), be
+        // more aggressive: the longer the game goes the more cards we lose,
+        // so push damage with marginal attackers like Savannah Lions even at
+        // borderline-trade aiAggression levels.
+        if (aiAggression > 0 && aiAggression < 5 && defendingOpponent != null
+                && opponentHasOngoingAttritionThreat(defendingOpponent)) {
+            aiAggression = Math.min(5, aiAggression + 1);
+            if (LOG_AI_ATTACKS) {
+                System.out.println("Bumping aiAggression to " + aiAggression
+                        + " because opponent has an ongoing card-attrition threat");
+            }
+        }
+
         if ( LOG_AI_ATTACKS )
             System.out.println(aiAggression + " = ai aggression");
 
@@ -1562,6 +1576,44 @@ public class AiAttackController {
             break;
         }
         return false; // don't attack
+    }
+
+    /**
+     * Returns true if the given opponent controls a creature whose combat-
+     * damage-to-player trigger generates ongoing card disadvantage (discard,
+     * mill, repeated lifeloss, etc.). When such a card sits in play, every
+     * extra turn costs us cards, so the AI should attack more aggressively
+     * to end the game even at the cost of marginal trades.
+     */
+    private static boolean opponentHasOngoingAttritionThreat(final Player opp) {
+        for (Card c : opp.getCreaturesInPlay()) {
+            for (Trigger t : c.getTriggers()) {
+                if (t.getMode() != TriggerType.DamageDone) {
+                    continue;
+                }
+                String validSource = t.getParam("ValidSource");
+                if (validSource != null && !validSource.contains("Self") && !validSource.contains("Card.Self")) {
+                    continue;
+                }
+                String validTarget = t.getParam("ValidTarget");
+                if (validTarget != null && !validTarget.contains("Player") && !validTarget.contains("Opponent")) {
+                    continue;
+                }
+                SpellAbility exec = t.ensureAbility();
+                if (exec == null) {
+                    continue;
+                }
+                ApiType api = exec.getApi();
+                if (api == ApiType.Discard
+                        || api == ApiType.Mill
+                        || api == ApiType.LoseLife
+                        || api == ApiType.Sacrifice
+                        || api == ApiType.ChangeZone) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public static List<Card> exertAttackers(final List<Card> attackers, int aggression) {

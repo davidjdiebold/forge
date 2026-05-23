@@ -21,12 +21,15 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
+import forge.ai.ComputerUtilCost;
 import forge.ai.SpellAbilityAi;
 import forge.game.ability.AbilityUtils;
+import forge.game.card.Card;
 import forge.game.player.Player;
 import forge.game.player.PlayerCollection;
 import forge.game.player.PlayerPredicates;
 import forge.game.spellability.SpellAbility;
+import forge.game.zone.ZoneType;
 
 /**
  * <p>
@@ -82,7 +85,53 @@ public class AddTurnAi extends SpellAbilityAi {
      */
     @Override
     protected boolean canPlayAI(Player aiPlayer, SpellAbility sa) {
+        // An extra-turn spell with no creatures on board is mostly wasted —
+        // we just untap, draw and play a land. If the AI has a creature in
+        // hand it can actually cast this turn, prefer to deploy that creature
+        // first so the extra turn translates into real damage. Only defer
+        // when we have neither board presence nor an opposing planeswalker
+        // we can pressure.
+        if (sa.isSpell() && sa.getActivatingPlayer() != null
+                && sa.getActivatingPlayer().equals(aiPlayer)
+                && aiPlayer.getCreaturesInPlay().isEmpty()
+                && !hasOpposingPlaneswalker(aiPlayer)
+                && hasCastableCreatureInHand(aiPlayer, sa)) {
+            return false;
+        }
         return doTriggerAINoCost(aiPlayer, sa, false);
+    }
+
+    private static boolean hasOpposingPlaneswalker(final Player ai) {
+        for (Player opp : ai.getOpponents()) {
+            for (Card c : opp.getCardsIn(ZoneType.Battlefield)) {
+                if (c.isPlaneswalker()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasCastableCreatureInHand(final Player ai, final SpellAbility selfSa) {
+        final Card selfHost = selfSa != null ? selfSa.getHostCard() : null;
+        for (Card c : ai.getCardsIn(ZoneType.Hand)) {
+            if (c.equals(selfHost) || c.isLand()) {
+                continue;
+            }
+            if (!c.isCreature()) {
+                continue;
+            }
+            for (SpellAbility ability : c.getSpellAbilities()) {
+                if (!ability.isSpell()) {
+                    continue;
+                }
+                ability.setActivatingPlayer(ai, true);
+                if (ComputerUtilCost.canPayCost(ability, ai, false)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 }

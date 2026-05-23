@@ -1282,11 +1282,20 @@ public class ComputerUtilCard {
                 }
                 if (!priority) {
                     for (final Trigger t : c.getTriggers()) {
-                        if (t.isIntrinsic()) {
-                            // has a triggered ability, could be benefitting the opponent or disrupting the AI
-                            priority = true;
-                            break;
+                        if (!t.isIntrinsic()) {
+                            continue;
                         }
+                        // Don't flag as priority if this trigger would currently
+                        // deal 0 (or negative) damage to the AI (e.g. Black Vise
+                        // with chosen player at <= 4 cards in hand). The card
+                        // is not yet doing anything — defer the removal until
+                        // the AI's hand actually grows past the threshold.
+                        if (triggerIsCurrentlyHarmless(t, c, ai)) {
+                            continue;
+                        }
+                        // has a triggered ability, could be benefitting the opponent or disrupting the AI
+                        priority = true;
+                        break;
                     }
                 }
                 // if this thing has AILogic set to "Curse", it's probably meant as some form of disruption
@@ -1365,6 +1374,33 @@ public class ComputerUtilCard {
 
         final float chance = MyRandom.getRandom().nextFloat();
         return chance < valueNow;
+    }
+
+    /**
+     * Returns true if the given trigger on the given opponent-controlled card
+     * is currently "doing nothing" — specifically, when it would resolve to
+     * a DealDamage of <= 0 (e.g. Black Vise where the chosen player only has
+     * 4 or fewer cards in hand). Used so the AI doesn't waste tempo
+     * destroying conditional artifacts that aren't actively hurting it yet.
+     */
+    private static boolean triggerIsCurrentlyHarmless(final Trigger t, final Card host, final Player ai) {
+        SpellAbility exec = t.ensureAbility();
+        if (exec == null) {
+            return false;
+        }
+        if (exec.getApi() != ApiType.DealDamage) {
+            return false;
+        }
+        String numDmg = exec.getParam("NumDmg");
+        if (numDmg == null) {
+            return false;
+        }
+        try {
+            int dmg = AbilityUtils.calculateAmount(host, numDmg, exec);
+            return dmg <= 0;
+        } catch (Exception ex) {
+            return false;
+        }
     }
 
     /**

@@ -21,15 +21,25 @@ public class FlipOntoBattlefieldEffect extends SpellAbilityEffect {
     @Override
     public void resolve(SpellAbility sa) {
         // Basic parameters defining the chances
-        final float chanceToFlip = 0.85f;
+        float chanceToFlip = 0.85f;
         final int maxFlipTimes = 2;
-        final float chanceToHit = 0.70f;
-        final float chanceToHitTwoCards = 0.20f;
+        float chanceToHit = 0.70f;
+        float chanceToHitTwoCards = 0.20f;
 
         final Card host = sa.getHostCard();
         final Player p = sa.getActivatingPlayer();
         final Game game = host.getGame();
         boolean flippedOnce = false;
+
+        // AI activations represent a "perfect" physical flip — bypass the
+        // random failure rolls so an AI Chaos Orb (or similar) always lands
+        // on the chosen target. Otherwise the AI burns its only copy of a
+        // powerful one-shot effect with a high chance of doing nothing.
+        if (p != null && p.getController() != null && p.getController().isAI()) {
+            chanceToFlip = 1.0f;
+            chanceToHit = 1.0f;
+            chanceToHitTwoCards = 0.0f; // stick to the explicitly chosen target
+        }
 
         // TODO: allow to make a bounding box of sorts somehow, ideally - upgrade to a full system allowing to actually target by location
         CardCollectionView tgtBox = p.getController().chooseCardsForEffect(game.getCardsIn(ZoneType.Battlefield), sa, Localizer.getInstance().getMessage("lblChooseDesiredLocation"), 1, 1, sa.hasParam("AllowRandom"), null);

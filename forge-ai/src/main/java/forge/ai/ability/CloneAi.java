@@ -214,9 +214,72 @@ public class CloneAi extends SpellAbilityAi {
             options = CardLists.filter(options, Predicates.not(CardPredicates.sharesNameWith(host)));
         }
 
+        // When the AI is going to control the clone, prefer artifacts that
+        // strictly help us (mana acceleration, Sol Ring, etc.) over symmetric
+        // punisher artifacts like Ankh of Mishra that would also hurt the AI.
+        // Without this, getMostExpensivePermanentAI just returns the highest
+        // CMC permanent and Copy Artifact ends up cloning the opponent's
+        // Ankh of Mishra instead of their Sol Ring or Mox.
+        if (!isOpp) {
+            Card preferred = pickBestArtifactForSelf(options, ai);
+            if (preferred != null) {
+                return preferred;
+            }
+        }
+
         Card choice = isOpp ? ComputerUtilCard.getWorstAI(options) : ComputerUtilCard.getBestAI(options);
 
         return choice;
+    }
+
+    /**
+     * Curated artifact preference for self-controlled clones. Returns a
+     * mana-acceleration / pure-value artifact when one is available, and
+     * actively avoids symmetric punisher artifacts that would hurt the AI
+     * just as much as they would hurt the opponent.
+     */
+    private static Card pickBestArtifactForSelf(final Iterable<Card> options, final Player ai) {
+        // Tier-ordered preference list — highest tier first.
+        final String[][] tiers = new String[][] {
+                { "Black Lotus" },
+                { "Sol Ring", "Mana Vault", "Mana Crypt" },
+                { "Mox Sapphire", "Mox Jet", "Mox Ruby", "Mox Pearl", "Mox Emerald", "Mox Diamond", "Chrome Mox" },
+                { "Lotus Petal", "Lion's Eye Diamond" },
+                { "Skullclamp", "Sensei's Divining Top", "Winter Orb", "Howling Mine" },
+        };
+        for (String[] tier : tiers) {
+            for (Card opt : options) {
+                for (String name : tier) {
+                    if (name.equals(opt.getName())) {
+                        return opt;
+                    }
+                }
+            }
+        }
+        // Filter out symmetric punisher artifacts that hurt both players.
+        // If everything in the option list is symmetric-punisher, fall back
+        // to the default best-AI selection instead of forcing a bad pick.
+        java.util.List<Card> filtered = CardLists.filter(options, new com.google.common.base.Predicate<Card>() {
+            @Override
+            public boolean apply(Card c) {
+                return !isSymmetricPunisherArtifact(c);
+            }
+        });
+        if (!filtered.isEmpty()) {
+            return ComputerUtilCard.getBestAI(filtered);
+        }
+        return null;
+    }
+
+    private static boolean isSymmetricPunisherArtifact(final Card c) {
+        final String n = c.getName();
+        return "Ankh of Mishra".equalsIgnoreCase(n)
+                || "Manabarbs".equalsIgnoreCase(n)
+                || "Sulfuric Vortex".equalsIgnoreCase(n)
+                || "Black Vise".equalsIgnoreCase(n)
+                || "Stormtide Leviathan".equalsIgnoreCase(n)
+                || "The Rack".equalsIgnoreCase(n)
+                || "Spike Weaver".equalsIgnoreCase(n);
     }
 
     protected Card getCloneTarget(final SpellAbility sa) {

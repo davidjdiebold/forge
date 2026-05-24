@@ -95,7 +95,7 @@ public class AddTurnAi extends SpellAbilityAi {
                 && sa.getActivatingPlayer().equals(aiPlayer)
                 && aiPlayer.getCreaturesInPlay().isEmpty()
                 && !hasOpposingPlaneswalker(aiPlayer)
-                && hasCastableCreatureInHand(aiPlayer, sa)) {
+                && hasCastableBoardDevelopingCardInHand(aiPlayer, sa)) {
             return false;
         }
         return doTriggerAINoCost(aiPlayer, sa, false);
@@ -112,13 +112,18 @@ public class AddTurnAi extends SpellAbilityAi {
         return false;
     }
 
-    private static boolean hasCastableCreatureInHand(final Player ai, final SpellAbility selfSa) {
+    private static boolean hasCastableBoardDevelopingCardInHand(final Player ai, final SpellAbility selfSa) {
         final Card selfHost = selfSa != null ? selfSa.getHostCard() : null;
         for (Card c : ai.getCardsIn(ZoneType.Hand)) {
             if (c.equals(selfHost) || c.isLand()) {
                 continue;
             }
-            if (!c.isCreature()) {
+            // Accept anything that develops the board: a creature, or a
+            // permanent that produces / interacts with creatures (e.g.
+            // The Hive's wasp generator, planeswalkers, build-around
+            // enchantments). Pure instants/sorceries don't help an extra
+            // turn so we ignore them here.
+            if (!c.isPermanent()) {
                 continue;
             }
             for (SpellAbility ability : c.getSpellAbilities()) {

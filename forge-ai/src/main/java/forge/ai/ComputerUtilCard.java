@@ -537,7 +537,28 @@ public class ComputerUtilCard {
                     return !card.hasSVar("DoNotDiscardIfAble");
                 }
             }));
-            return getCheapestPermanentAI(ae, null, false);
+            // Prefer to feed "spent" / vanilla artifacts and enchantments to a sac cost
+            // before tossing permanents that still provide recurring value -- ongoing
+            // triggers (Ankh of Mishra, Black Vise, Howling Mine), static abilities,
+            // replacement effects, mana production (Sol Ring, Mox-likes), or other
+            // activated card-advantage abilities (Jayemdae Tome, Disrupting Scepter, ...).
+            final List<Card> spent = CardLists.filter(ae, new Predicate<Card>() {
+                @Override
+                public boolean apply(Card card) {
+                    if (!card.getTriggers().isEmpty()
+                            || !card.getStaticAbilities().isEmpty()
+                            || !card.getReplacementEffects().isEmpty()) {
+                        return false;
+                    }
+                    for (SpellAbility ab : card.getSpellAbilities()) {
+                        if (ab.isActivatedAbility() && ab.getApi() != null) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            });
+            return getCheapestPermanentAI(spent.isEmpty() ? ae : spent, null, false);
         }
 
         if (hasCreatures) {

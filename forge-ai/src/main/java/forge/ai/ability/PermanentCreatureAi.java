@@ -245,9 +245,92 @@ public class PermanentCreatureAi extends PermanentAi {
             if (shouldDeferCreatureToHandleThreat(ai, sa, copy)) {
                 return false;
             }
+            // Defer non-artifact creatures while The Abyss is in play unless we
+            // can swarm (deploy multiple this turn) so the recurring kill is
+            // amortized. Otherwise we just feed the trigger one creature per turn.
+            if (shouldDeferUnderAbyss(ai, sa, copy)) {
+                return false;
+            }
             return true;
         }
 
+        return false;
+    }
+
+    /**
+     * If The Abyss (or any permanent whose upkeep trigger destroys a target
+     * nonartifact creature controlled by the active player) is on the
+     * battlefield, hold non-artifact creatures unless we can swarm.
+     */
+    private static boolean shouldDeferUnderAbyss(final Player ai, final SpellAbility sa, final Card creatureLKI) {
+        if (creatureLKI.isArtifact()) {
+            return false;
+        }
+        boolean abyssInPlay = false;
+        for (Card c : ai.getGame().getCardsIn(ZoneType.Battlefield)) {
+            if (isAbyssLike(c)) {
+                abyssInPlay = true;
+                break;
+            }
+        }
+        if (!abyssInPlay) {
+            return false;
+        }
+        // Count non-artifact creatures we already control. The Abyss will kill
+        // exactly one per upkeep, so each additional one we add is only worth
+        // it if we're stacking multiple this turn (so the loss is amortized).
+        int ownNonArtCreatures = 0;
+        for (Card c : ai.getCreaturesInPlay()) {
+            if (!c.isArtifact()) {
+                ownNonArtCreatures++;
+            }
+        }
+        // Count additional non-artifact creatures still in hand that the AI
+        // could plausibly chain after this one to actually swarm.
+        int otherNonArtInHand = 0;
+        final Card self = sa.getHostCard();
+        for (Card h : ai.getCardsIn(ZoneType.Hand)) {
+            if (h.equals(self) || h.isLand() || h.isArtifact() || !h.isCreature()) {
+                continue;
+            }
+            SpellAbility cast = h.getFirstSpellAbility();
+            if (cast == null) {
+                continue;
+            }
+            cast.setActivatingPlayer(ai, true);
+            if (ComputerUtilCost.canPayCost(cast, ai, false)) {
+                otherNonArtInHand++;
+            }
+        }
+        // Already have at least one non-art creature out and no swarm follow-up
+        // available -> just feeding The Abyss. Hold it.
+        return ownNonArtCreatures >= 1 && otherNonArtInHand == 0;
+    }
+
+    private static boolean isAbyssLike(final Card c) {
+        if ("The Abyss".equals(c.getName())) {
+            return true;
+        }
+        for (forge.game.trigger.Trigger t : c.getTriggers()) {
+            if (t.getMode() != forge.game.trigger.TriggerType.Phase) {
+                continue;
+            }
+            if (!"Upkeep".equals(t.getParam("Phase"))) {
+                continue;
+            }
+            String execName = t.getParam("Execute");
+            if (execName == null) {
+                continue;
+            }
+            String svar = c.getSVar(execName);
+            if (svar == null) {
+                continue;
+            }
+            if (svar.contains("DB$ Destroy")
+                    && svar.contains("Creature.nonArtifact")) {
+                return true;
+            }
+        }
         return false;
     }
 

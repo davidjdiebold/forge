@@ -400,7 +400,17 @@ public class ComputerUtil {
                             if (isBestAI) {
                                 return ComputerUtilCard.getBestAI(overrideList == null ? prefList : overrideList);
                             } else {
-                                return ComputerUtilCard.getWorstAI(overrideList == null ? prefList : overrideList);
+                                Card chosen = ComputerUtilCard.getWorstAI(overrideList == null ? prefList : overrideList);
+                                // Guard: don't sacrifice a critical mana source (e.g. a Mox)
+                                // to a non-essential pump cost when the AI's mana base is
+                                // still fragile and it has unplayed spells in hand needing
+                                // that mana. Skip this tier and let the outer loop try the
+                                // next one (which may also return null -> activation aborted).
+                                if (chosen != null && "SacCost".equals(pref)
+                                        && wouldCripplesManaBase(ai, chosen)) {
+                                    continue;
+                                }
+                                return chosen;
                             }
                         }
                     }
@@ -577,6 +587,59 @@ public class ComputerUtil {
             }
         }
         return null;
+    }
+
+    /**
+     * Returns true if sacrificing {@code candidate} would noticeably damage the
+     * AI's ability to cast spells from hand this turn (e.g. it's an untapped
+     * Mox/Sol Ring, the AI only has a handful of mana sources, and still has
+     * unplayed spells in hand whose CMC needs that mana).
+     */
+    public static boolean wouldCripplesManaBase(final Player ai, final Card candidate) {
+        if (candidate == null) {
+            return false;
+        }
+        // Only worry about untapped mana producers; a tapped Mox is "spent" anyway.
+        boolean isManaSource = false;
+        for (SpellAbility ab : candidate.getSpellAbilities()) {
+            if (ab.getApi() == forge.game.ability.ApiType.Mana && ab.isAbility()) {
+                isManaSource = true;
+                break;
+            }
+        }
+        if (!isManaSource) {
+            return false;
+        }
+        if (candidate.isTapped()) {
+            return false;
+        }
+        int manaSources = ComputerUtilMana.getAvailableManaSources(ai, true).size();
+        // Roughly enough mana for early-mid game spells already? Don't worry.
+        if (manaSources >= 5) {
+            return false;
+        }
+        int maxNeededCmc = 0;
+        int unplayedSpells = 0;
+        for (Card h : ai.getCardsIn(ZoneType.Hand)) {
+            if (h.isLand()) {
+                continue;
+            }
+            SpellAbility cast = h.getFirstSpellAbility();
+            if (cast == null || cast.getPayCosts() == null || cast.getPayCosts().getTotalMana() == null) {
+                continue;
+            }
+            int cmc = cast.getPayCosts().getTotalMana().getCMC();
+            if (cmc <= 0) {
+                continue;
+            }
+            unplayedSpells++;
+            if (cmc > maxNeededCmc) {
+                maxNeededCmc = cmc;
+            }
+        }
+        // Plenty of cards to play and dropping this Mox would put us below
+        // what our biggest hand spell costs => crippling.
+        return unplayedSpells >= 2 && (manaSources - 1) < maxNeededCmc;
     }
 
     public static int getAIPreferenceParameter(final Card c, final String paramName, SpellAbility sa) {

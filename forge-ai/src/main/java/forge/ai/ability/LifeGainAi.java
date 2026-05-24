@@ -157,6 +157,30 @@ public class LifeGainAi extends SpellAbilityAi {
         if (!activateForCost && lifeAmount <= 0) {
             return false;
         }
+
+        // Emergency response: if there's an opposing damage SA on the stack
+        // (e.g. Lightning Bolt) targeting the AI and the predicted damage would
+        // reduce its life to 0 or less, activate any life-gain ability that
+        // would save us. The default heuristics below randomize instant-speed
+        // lifegain and frequently skip cheap-but-critical pings like Fountain
+        // of Youth.
+        if (ai.canGainLife() && lifeAmount > 0) {
+            final Game stackGame = ai.getGame();
+            int incoming = 0;
+            for (forge.game.spellability.SpellAbilityStackInstance si : stackGame.getStack()) {
+                SpellAbility stSa = si.getSpellAbility();
+                if (stSa == null || stSa.getActivatingPlayer() == null
+                        || !stSa.getActivatingPlayer().isOpponentOf(ai)) {
+                    continue;
+                }
+                if (stSa.getTargets() != null && Iterables.contains(stSa.getTargets().getTargetPlayers(), ai)) {
+                    incoming += Math.max(0, ComputerUtil.predictDamageFromSpell(stSa, ai));
+                }
+            }
+            if (incoming >= life && life - incoming + lifeAmount > 0) {
+                return true;
+            }
+        }
         // don't play if the conditions aren't met, unless it would trigger a
         // beneficial sub-condition
         if (!activateForCost && !sa.metConditions()) {

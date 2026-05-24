@@ -1410,10 +1410,11 @@ public class ComputerUtilCard {
 
     /**
      * Returns true if the given trigger on the given opponent-controlled card
-     * is currently "doing nothing" — specifically, when it would resolve to
-     * a DealDamage of <= 0 (e.g. Black Vise where the chosen player only has
-     * 4 or fewer cards in hand). Used so the AI doesn't waste tempo
-     * destroying conditional artifacts that aren't actively hurting it yet.
+     * is currently "not worth reacting to" — either it would resolve to a
+     * DealDamage of <= 0 (e.g. Black Vise where the chosen player only has 4
+     * or fewer cards in hand) OR the damage it would deal is small enough
+     * relative to the AI's current life total that burning a removal spell on
+     * it is wasteful (e.g. Black Vise dealing 1/turn while the AI is at 17).
      */
     private static boolean triggerIsCurrentlyHarmless(final Trigger t, final Card host, final Player ai) {
         SpellAbility exec = t.ensureAbility();
@@ -1429,7 +1430,15 @@ public class ComputerUtilCard {
         }
         try {
             int dmg = AbilityUtils.calculateAmount(host, numDmg, exec);
-            return dmg <= 0;
+            if (dmg <= 0) {
+                return true;
+            }
+            // Trivial recurring damage vs. comfortable life total -> no rush.
+            // At 10+ life we tolerate 1/turn, at 20+ we tolerate 2/turn, etc.
+            // Once life gets short or the hand grows the predicate flips and
+            // the removal is treated as urgent again.
+            int tolerated = ai.getLife() / 10;
+            return dmg <= tolerated;
         } catch (Exception ex) {
             return false;
         }

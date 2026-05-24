@@ -310,6 +310,16 @@ public class DestroyAi extends SpellAbilityAi {
                 return true;
             }
 
+            // If the Destroy targets the host's Remembered list (e.g. Chaos
+            // Orb's flip sub-ability) and nothing has been remembered yet,
+            // this is being evaluated as a drawback before the parent SA
+            // populates the remembered set. Treat as benign so we don't veto
+            // the parent activation.
+            if (list.isEmpty() && "Remembered".equals(sa.getParam("Defined"))
+                    && !source.hasRemembered()) {
+                return true;
+            }
+
             if (list.isEmpty()
                     || !CardLists.filterControlledBy(list, ai).isEmpty()
                     || CardLists.getNotKeyword(list, Keyword.INDESTRUCTIBLE).isEmpty()) {

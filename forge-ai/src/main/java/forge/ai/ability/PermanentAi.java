@@ -289,7 +289,117 @@ public class PermanentAi extends SpellAbilityAi {
             return !dontCast;
         }
 
+        // Defer slow noncreature build-around permanents (The Hive, etc.) when
+        // there's an immediate pressing threat we can answer with a cheaper
+        // removal spell in hand. Long-term token / engine cards add zero
+        // tempo this turn, while spending 5 mana on them lets a Serendib
+        // Efreet keep dealing 3 damage / turn.
+        if (shouldDeferSlowBuildAroundForRemoval(ai, sa, source)) {
+            return false;
+        }
+
         return true;
+    }
+
+    private static boolean shouldDeferSlowBuildAroundForRemoval(final Player ai, final SpellAbility sa, final Card source) {
+        if (source == null || source.isLand() || source.isCreature() || source.isAura()) {
+            return false;
+        }
+        if (sa.getPayCosts() == null || sa.getPayCosts().getTotalMana() == null) {
+            return false;
+        }
+        if (sa.getPayCosts().getTotalMana().getCMC() < 4) {
+            return false;
+        }
+        // Skip if this card has an ETB trigger that directly answers threats
+        // (damage / destroy / exile). Those aren't "slow".
+        for (forge.game.trigger.Trigger t : source.getTriggers()) {
+            if (t.getMode() != forge.game.trigger.TriggerType.ChangesZone) {
+                continue;
+            }
+            if (!"Battlefield".equals(t.getParam("Destination"))) {
+                continue;
+            }
+            String execName = t.getParam("Execute");
+            if (execName == null) {
+                continue;
+            }
+            String svar = source.getSVar(execName);
+            if (svar == null) {
+                continue;
+            }
+            if (svar.contains("DB$ DealDamage") || svar.contains("DB$ Destroy")
+                    || svar.contains("DB$ ChangeZone") || svar.contains("DB$ Pump")) {
+                return false;
+            }
+        }
+        // Find the most threatening opposing creature.
+        Card threat = null;
+        int worstPower = 2;
+        for (Player opp : ai.getOpponents()) {
+            for (Card c : opp.getCreaturesInPlay()) {
+                if (!c.canBeDestroyed()) {
+                    continue;
+                }
+                int power = c.getNetPower();
+                if (c.hasKeyword(forge.game.keyword.Keyword.FLYING)) {
+                    power++;
+                }
+                if (power > worstPower) {
+                    worstPower = power;
+                    threat = c;
+                }
+            }
+        }
+        if (threat == null) {
+            return false;
+        }
+        // Do we have a cheaper removal spell in hand that can answer it?
+        final int threatToughness = Math.max(1, threat.getNetToughness());
+        final int slowCmc = sa.getPayCosts().getTotalMana().getCMC();
+        for (Card h : ai.getCardsIn(ZoneType.Hand)) {
+            if (h.equals(source) || h.isLand()) {
+                continue;
+            }
+            for (SpellAbility ab : h.getSpellAbilities()) {
+                if (!ab.isSpell()) {
+                    continue;
+                }
+                if (ab.getPayCosts() == null || ab.getPayCosts().getTotalMana() == null) {
+                    continue;
+                }
+                if (ab.getPayCosts().getTotalMana().getCMC() >= slowCmc) {
+                    continue; // not actually cheaper
+                }
+                if (ab.getApi() == forge.game.ability.ApiType.Destroy
+                        || ab.getApi() == forge.game.ability.ApiType.ChangeZone) {
+                    ab.setActivatingPlayer(ai, true);
+                    if (ComputerUtilCost.canPayCost(ab, ai, false)) {
+                        return true;
+                    }
+                }
+                if (ab.getApi() == forge.game.ability.ApiType.DealDamage) {
+                    String numDmg = ab.getParam("NumDmg");
+                    if (numDmg == null) {
+                        continue;
+                    }
+                    int dmg;
+                    try {
+                        dmg = Integer.parseInt(numDmg);
+                    } catch (NumberFormatException e) {
+                        continue;
+                    }
+                    if (dmg < threatToughness) {
+                        continue;
+                    }
+                    ab.setActivatingPlayer(ai, true);
+                    if (ComputerUtilCost.canPayCost(ab, ai, false)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     @Override

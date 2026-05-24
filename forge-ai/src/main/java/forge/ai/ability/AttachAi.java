@@ -622,6 +622,13 @@ public class AttachAi extends SpellAbilityAi {
 
             int eval = attachable ? ComputerUtilCard.evaluateCreature(lki) : Integer.MIN_VALUE;
 
+            // Penalize creatures with recurring "hurts its controller" triggers
+            // (e.g. Serendib Efreet's "deals 1 damage to you" upkeep), since the AI
+            // will be the one paying that ongoing cost after reanimation.
+            if (attachable) {
+                eval -= selfHarmReanimationPenalty(c);
+            }
+
             //reset static abilities
             c.getGame().getAction().checkStaticAbilities(false);
 
@@ -650,6 +657,63 @@ public class AttachAi extends SpellAbilityAi {
         }
 
         return best;
+    }
+
+    // Estimate the "self-harm" cost of putting a creature with a recurring upkeep
+    // trigger onto our battlefield (e.g. Serendib Efreet, Juzam Djinn).
+    // Returns ~120 per point of damage / life loss per turn aimed at the controller.
+    private static int selfHarmReanimationPenalty(final Card c) {
+        int penalty = 0;
+        for (Trigger t : c.getTriggers()) {
+            if (t.getMode() != TriggerType.Phase) {
+                continue;
+            }
+            if (!"Upkeep".equals(t.getParam("Phase"))) {
+                continue;
+            }
+            String validPlayer = t.getParam("ValidPlayer");
+            if (validPlayer == null || !validPlayer.contains("You")) {
+                continue;
+            }
+            String execName = t.getParam("Execute");
+            if (execName == null) {
+                continue;
+            }
+            String svar = c.getSVar(execName);
+            if (svar == null || svar.isEmpty()) {
+                continue;
+            }
+            int self = 0;
+            if ((svar.contains("DB$ DealDamage") || svar.contains("DB$ LoseLife"))
+                    && (svar.contains("Defined$ You")
+                        || svar.contains("Defined$ TriggeredPlayer")
+                        || svar.contains("Defined$ TriggeredCardController"))) {
+                self = parseSvarAmount(svar, svar.contains("DB$ DealDamage") ? "NumDmg" : "LifeAmount");
+            }
+            penalty += self * 120;
+        }
+        return penalty;
+    }
+
+    private static int parseSvarAmount(final String svar, final String key) {
+        int idx = svar.indexOf(key + "$");
+        if (idx < 0) {
+            return 1;
+        }
+        String rest = svar.substring(idx + key.length() + 1).trim();
+        int barIdx = rest.indexOf('|');
+        if (barIdx >= 0) {
+            rest = rest.substring(0, barIdx).trim();
+        }
+        int spaceIdx = rest.indexOf(' ');
+        if (spaceIdx >= 0) {
+            rest = rest.substring(0, spaceIdx).trim();
+        }
+        try {
+            return Integer.parseInt(rest);
+        } catch (NumberFormatException e) {
+            return 1;
+        }
     }
 
     // Cards that trigger on dealing damage

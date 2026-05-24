@@ -82,7 +82,12 @@ public class FlipOntoBattlefieldEffect extends SpellAbilityEffect {
             }
         }
         else if (outcome <= chanceToHit) {
-            hit.add(Aggregates.random(randChoices, game.getRandom()));
+            // For AI activations, deterministically land on the chosen target rather
+            // than on a random neighbor; the AI specifically picked tgtLoc.
+            Card landed = (p != null && p.getController() != null && p.getController().isAI())
+                    ? tgtLoc
+                    : Aggregates.random(randChoices, game.getRandom());
+            hit.add(landed);
             game.getAction().notifyOfValue(sa, host, Localizer.getInstance().getMessage("lblLandedOnOneCard", hit.getFirst()), null);
         } else {
             game.getAction().notifyOfValue(sa, host, Localizer.getInstance().getMessage("lblDidNotLandOnCards"), null);

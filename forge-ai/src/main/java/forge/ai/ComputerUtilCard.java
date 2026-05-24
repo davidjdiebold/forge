@@ -1382,11 +1382,22 @@ public class ComputerUtilCard {
                 && !c.hasKeyword(Keyword.WITHER)) {
             boolean hasDangerousActivatedAbility = false;
             for (SpellAbility ab : c.getSpellAbilities()) {
-                // any non-mana activated ability that costs only mana / tap is suspect
-                if (ab.isAbility() && ab.getApi() != ApiType.Mana) {
-                    hasDangerousActivatedAbility = true;
-                    break;
+                if (!ab.isAbility() || ab.getApi() == ApiType.Mana) {
+                    continue;
                 }
+                // Only worry if the opponent can actually pay the cost right now.
+                // A depleted Triskelion (no +1/+1 counters left) has the "remove
+                // counter -> deal 1" ability printed but cannot pay the cost,
+                // so it is effectively a vanilla 1/1 and not worth burning
+                // Lightning Bolt on.
+                if (!ab.getRestrictions().canPlay(c, ab)) {
+                    continue;
+                }
+                if (ab.getPayCosts() != null && !ab.getPayCosts().canPay(ab, c.getController(), ab.isTrigger())) {
+                    continue;
+                }
+                hasDangerousActivatedAbility = true;
+                break;
             }
             if (!hasDangerousActivatedAbility && valueNow < 0.7) {
                 return false;

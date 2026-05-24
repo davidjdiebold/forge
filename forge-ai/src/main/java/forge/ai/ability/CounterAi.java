@@ -232,7 +232,66 @@ public class CounterAi extends SpellAbilityAi {
             return false;
         }
 
+        // Survival guard: if life is critical and the target spell isn't an
+        // immediate threat (e.g. opponent just played a Mox or another harmless
+        // permanent), don't sink mana into countering it -- we likely need that
+        // mana for chump-blocking via a token generator (The Hive), life-gain
+        // or removal activated abilities.
+        if (tgtSA != null
+                && ai.getLife() <= 5
+                && !isImmediateThreatToAi(ai, tgtSA)
+                && hasManaDependentSurvivalOption(ai)) {
+            return false;
+        }
+
         return toReturn;
+    }
+
+    private static boolean isImmediateThreatToAi(final Player ai, final SpellAbility tgtSA) {
+        if (tgtSA == null) {
+            return true;
+        }
+        ApiType api = tgtSA.getApi();
+        if (api == ApiType.DealDamage || api == ApiType.LoseLife || api == ApiType.DamageAll) {
+            return true;
+        }
+        // Removal of our creatures -> losing a blocker is a real threat
+        if (api == ApiType.Destroy || api == ApiType.DestroyAll
+                || api == ApiType.Sacrifice || api == ApiType.SacrificeAll
+                || api == ApiType.ChangeZone || api == ApiType.ChangeZoneAll) {
+            return true;
+        }
+        // Mass pump that could push opponent's lethal through
+        if (api == ApiType.Pump || api == ApiType.PumpAll) {
+            return true;
+        }
+        // Mill / discard / draw effects aren't urgent right now
+        return false;
+    }
+
+    private static boolean hasManaDependentSurvivalOption(final Player ai) {
+        for (Card c : ai.getCardsIn(ZoneType.Battlefield)) {
+            for (SpellAbility ab : c.getSpellAbilities()) {
+                if (!ab.isAbility() || ab.getApi() == null) {
+                    continue;
+                }
+                if (ab.getPayCosts() == null
+                        || ab.getPayCosts().getCostMana() == null
+                        || ab.getPayCosts().getCostMana().getMana().getCMC() == 0) {
+                    continue;
+                }
+                ApiType api = ab.getApi();
+                if (api == ApiType.Token
+                        || api == ApiType.GainLife
+                        || api == ApiType.PreventDamage
+                        || api == ApiType.DealDamage
+                        || api == ApiType.Destroy
+                        || api == ApiType.Pump) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override

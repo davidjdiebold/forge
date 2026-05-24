@@ -10,8 +10,7 @@ ssh -A ...
 
 # Installation on Gateway
 curl -fsSL https://raw.githubusercontent.com/davidjdiebold/forge/gamerunnerapi/install.sh | bash
-cd forge/forge
-source run.sh
+cd forge/forge ; source run.sh
 
 # Get Service URL
 On vast.ai UI, on instance, there is a widget that gives external urls for each port.

@@ -128,6 +128,15 @@ public class CopySpellAbilityAi extends SpellAbilityAi {
             return SpecialCardAi.ChainOfAcid.consider(aiPlayer, sa);
         }
 
+        // Optional copy gated by an UnlessCost paid by another player (e.g. Chain Lightning's
+        // "target may pay {R}{R} to copy"). From the AI's perspective this is a benign drawback
+        // on the parent spell -- opponents will usually decline to pay -- so don't let the
+        // copy sub veto casting the main spell just because the stack isn't populated yet
+        // during the can-I-play decision.
+        if (sa.hasParam("UnlessCost") || sa.hasParam("UnlessPayer")) {
+            return true;
+        }
+
         return canPlayAI(aiPlayer, sa) || (sa.isMandatory() && super.chkAIDrawback(sa, aiPlayer));
     }
 

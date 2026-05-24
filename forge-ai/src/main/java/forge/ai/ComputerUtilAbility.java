@@ -407,6 +407,34 @@ public class ComputerUtilAbility {
                 p += 9;
             }
 
+            // Prioritize "ramp" artifacts whose mana ability produces more mana than the
+            // spell's mana cost (e.g. Sol Ring: cost 1, produces 2). Deploying these first
+            // in main 1 frees up mana to cast additional spells the same turn.
+            if (source != null && source.isArtifact() && sa.isSpell()
+                    && sa.getPayCosts() != null && sa.getPayCosts().getTotalMana() != null) {
+                int costCmc = sa.getPayCosts().getTotalMana().getCMC();
+                int bestNet = 0;
+                for (SpellAbility ab : source.getSpellAbilities()) {
+                    if (ab.getApi() == ApiType.Mana
+                            && ab.getPayCosts() != null
+                            && ab.getPayCosts().getCostMana() == null) {
+                        int produced;
+                        try {
+                            produced = Integer.parseInt(ab.getParamOrDefault("Amount", "1"));
+                        } catch (NumberFormatException e) {
+                            produced = 1;
+                        }
+                        int net = produced - costCmc;
+                        if (net > bestNet) {
+                            bestNet = net;
+                        }
+                    }
+                }
+                if (bestNet > 0) {
+                    p += 8 + bestNet;
+                }
+            }
+
             return p;
         }
     };

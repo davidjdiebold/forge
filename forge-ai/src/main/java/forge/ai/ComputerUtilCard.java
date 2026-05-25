@@ -1404,6 +1404,33 @@ public class ComputerUtilCard {
             }
         }
 
+        // FAST PATH: high-tempo creature threats (3+ power flyers / evasion or
+        // any 4+ power creature) deserve prompt permanent removal (exile,
+        // destroy, bounce to library/owner-hand). The phase-based dampening
+        // above was making the AI roll randomly and sit on Swords to
+        // Plowshares for several turns against Serendib Efreet / Serra Angel /
+        // Erhnam Djinn instead of just answering them.
+        if (c.isCreature()
+                && (destination == ZoneType.Exile
+                        || destination == ZoneType.Graveyard
+                        || destination == ZoneType.Library
+                        || destination == ZoneType.Hand)
+                && c.getController().isOpponentOf(ai)) {
+            int netPower = c.getNetPower();
+            boolean evasion = c.hasKeyword(Keyword.FLYING)
+                    || c.hasKeyword(Keyword.SHADOW)
+                    || c.hasKeyword(Keyword.FEAR)
+                    || c.hasKeyword(Keyword.HORSEMANSHIP)
+                    || c.hasKeyword(Keyword.SKULK)
+                    || c.hasKeyword(Keyword.INTIMIDATE)
+                    || c.hasKeyword(Keyword.TRAMPLE)
+                    || c.hasKeyword(Keyword.MENACE);
+            boolean regen = ComputerUtil.canRegenerate(c.getController(), c);
+            if (netPower >= 4 || (netPower >= 3 && (evasion || regen))) {
+                return true;
+            }
+        }
+
         final float chance = MyRandom.getRandom().nextFloat();
         return chance < valueNow;
     }

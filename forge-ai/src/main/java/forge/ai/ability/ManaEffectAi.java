@@ -221,8 +221,13 @@ public class ManaEffectAi extends SpellAbilityAi {
             if (((PlayerControllerAi)ai.getController()).getAi().canPlaySa(testSaNoCost) == AiPlayDecision.WillPlay) {
                 if (testSa.getHostCard().isPermanent() && !testSa.getHostCard().hasKeyword(Keyword.HASTE)
                     && !ai.getGame().getPhaseHandler().is(PhaseType.MAIN2)) {
-                    // AI will waste a ritual in Main 1 unless the casted permanent is a haste creature
-                    continue;
+                    // AI will waste a ritual in Main 1 unless the casted permanent is a haste creature,
+                    // UNLESS the permanent isn't castable this turn without the ritual (e.g. turn 1
+                    // Dark Ritual -> Hypnotic Specter). In that case the ritual is clearly worth it.
+                    int spellCMC = testSa.getPayCosts().getTotalMana().getCMC();
+                    if (spellCMC <= numManaSrcs) {
+                        continue;
+                    }
                 }
                 if (testSa.getHostCard().isInstant()) {
                     // AI is bad at choosing which instants are worth a Ritual

@@ -1419,6 +1419,26 @@ public class AiAttackController {
         if (!isEffectiveAttacker(ai, attacker, combat, defender)) {
             return false;
         }
+
+        // FAST PATH: if the defender currently has no creatures (and thus no
+        // valid blockers) and our attacker would deal at least 1 damage when
+        // unblocked, just attack. Without this short-circuit the AI sometimes
+        // talks itself out of attacking through the aggression-bucket logic
+        // (e.g. when shouldWaitToDevelop is true and doUnblockableAttack is
+        // false), even though the opponent has nothing on the board.
+        if (defender instanceof Player
+                && ((Player) defender).getCreaturesInPlay().isEmpty()
+                && this.blockers.isEmpty()) {
+            int dmg = ComputerUtilCombat.damageIfUnblocked(attacker, (Player) defender, combat, true);
+            if (dmg > 0 && !ComputerUtilCombat.lifeInDanger(ai, combat)) {
+                if (LOG_AI_ATTACKS) {
+                    System.out.println(attacker.getName()
+                            + " = attacking (defender has no creatures to block)");
+                }
+                return true;
+            }
+        }
+
         boolean hasAttackEffect = attacker.getSVar("HasAttackEffect").equals("TRUE") || attacker.hasKeyword(Keyword.ANNIHILATOR);
         // is there a gain in attacking even when the blocker is not killed (Lifelink, Wither,...)
         boolean hasCombatEffect = attacker.getSVar("HasCombatEffect").equals("TRUE") || "Blocked".equals(attacker.getSVar("HasAttackEffect"));

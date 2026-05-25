@@ -1197,6 +1197,13 @@ public class AiBlockController {
         // non-lethal blockers that won't kill the attacker but won't die to it as well
         makeGangNonLethalBlocks(combat);
 
+        // Defensive final pass: any attacker still unblocked that carries an
+        // ongoing card-attrition damage trigger (e.g. Hypnotic Specter forcing
+        // a random discard each hit) must be blocked if we have a safe
+        // blocker that destroys it without dying. Otherwise we bleed cards
+        // every turn while the AI passively tanks the 2 damage.
+        blockOngoingAttritionThreats(combat);
+
         //Check for validity of blocks in case something slipped through
         for (Card attacker : attackers) {
             if (!CombatUtil.canAttackerBeBlockedWithAmount(attacker, combat.getBlockers(attacker).size(), combat)) {
@@ -1206,6 +1213,82 @@ public class AiBlockController {
                 }
             }
         }
+    }
+
+    /**
+     * Defensive pass: force a block on any unblocked attacker whose damage
+     * trigger generates ongoing card disadvantage (Hypnotic Specter style
+     * random discard, mill, repeated loseLife/sacrifice, etc.) when we have a
+     * blocker that can destroy it without dying. Without this, the AI was
+     * happily eating Hypnotic Specter hits with a Serra Angel in play because
+     * its life total wasn't yet in danger.
+     */
+    private void blockOngoingAttritionThreats(final Combat combat) {
+        if (attackersLeft.isEmpty() || blockersLeft.isEmpty()) {
+            return;
+        }
+        List<Card> snapshot = new ArrayList<>(attackersLeft);
+        for (Card attacker : snapshot) {
+            if (!attackersLeft.contains(attacker)) {
+                continue;
+            }
+            if (!isOngoingAttritionAttacker(attacker)) {
+                continue;
+            }
+            if (CombatUtil.getMinNumBlockersForAttacker(attacker,
+                    combat.getDefenderPlayerByAttacker(attacker)) > 1) {
+                continue; // handled by gang blocks
+            }
+            List<Card> possible = getPossibleBlockers(combat, attacker, blockersLeft, true);
+            if (possible.isEmpty()) {
+                continue;
+            }
+            // Prefer a safe killing blocker; fall back to any killer.
+            List<Card> safe = getSafeBlockers(combat, attacker, possible);
+            List<Card> killers = getKillingBlockers(combat, attacker, safe);
+            if (killers.isEmpty()) {
+                killers = getKillingBlockers(combat, attacker, possible);
+            }
+            if (killers.isEmpty()) {
+                continue;
+            }
+            Card blocker = ComputerUtilCard.getWorstCreatureAI(killers);
+            if (blocker == null) {
+                continue;
+            }
+            combat.addBlocker(attacker, blocker);
+            blockersLeft.remove(blocker);
+            attackersLeft.remove(attacker);
+        }
+    }
+
+    private static boolean isOngoingAttritionAttacker(final Card attacker) {
+        for (Trigger t : attacker.getTriggers()) {
+            if (t.getMode() != TriggerType.DamageDone) {
+                continue;
+            }
+            String validSource = t.getParam("ValidSource");
+            if (validSource != null && !validSource.contains("Self")
+                    && !validSource.contains("Card.Self")) {
+                continue;
+            }
+            String validTarget = t.getParam("ValidTarget");
+            if (validTarget != null && !validTarget.contains("Player")
+                    && !validTarget.contains("Opponent")) {
+                continue;
+            }
+            SpellAbility exec = t.ensureAbility();
+            if (exec == null) {
+                continue;
+            }
+            ApiType api = exec.getApi();
+            if (api == ApiType.Discard || api == ApiType.Mill
+                    || api == ApiType.LoseLife || api == ApiType.Sacrifice
+                    || api == ApiType.ChangeZone) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static CardCollection orderBlockers(Card attacker, CardCollection blockers) {

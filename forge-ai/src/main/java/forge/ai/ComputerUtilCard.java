@@ -1416,7 +1416,49 @@ public class ComputerUtilCard {
      * relative to the AI's current life total that burning a removal spell on
      * it is wasteful (e.g. Black Vise dealing 1/turn while the AI is at 17).
      */
-    private static boolean triggerIsCurrentlyHarmless(final Trigger t, final Card host, final Player ai) {
+    /**
+     * Convenience predicate: is the given (non-creature) permanent currently
+     * a "harmless punisher" — i.e. its only intrinsic triggers do <= life/10
+     * damage right now (Black Vise dealing 1 damage / turn while we are at
+     * comfortable life)? If so, removing it wastes a removal spell that could
+     * answer a real threat.
+     */
+    public static boolean isPunisherCurrentlyHarmless(final Card c, final Player ai) {
+        if (c == null) {
+            return false;
+        }
+        if (c.isCreature() || c.isLand() || c.isPlaneswalker()) {
+            return false;
+        }
+        if (!c.isArtifact() && !c.isEnchantment()) {
+            return false;
+        }
+        if (c.getTriggers().isEmpty()) {
+            return false;
+        }
+        // Static abilities are typically continuous effects we can't assume
+        // are harmless (Howling Mine drawing cards, etc.).
+        if (!c.getStaticAbilities().isEmpty()) {
+            return false;
+        }
+        // Any activated ability the controller could use is a future threat.
+        for (SpellAbility ab : c.getNonManaAbilities()) {
+            if (ab.isActivatedAbility()) {
+                return false;
+            }
+        }
+        for (Trigger t : c.getTriggers()) {
+            if (!t.isIntrinsic()) {
+                return false;
+            }
+            if (!triggerIsCurrentlyHarmless(t, c, ai)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static boolean triggerIsCurrentlyHarmless(final Trigger t, final Card host, final Player ai) {
         SpellAbility exec = t.ensureAbility();
         if (exec == null) {
             return false;

@@ -218,6 +218,24 @@ public class DestroyAi extends SpellAbilityAi {
 
             // Try to avoid targeting creatures that are dead on board
             list = ComputerUtil.filterCreaturesThatWillDieThisTurn(ai, list, sa);
+            // Don't waste removal on punisher artifacts/enchantments that are
+            // currently doing nothing meaningful (e.g. Black Vise while we
+            // have <=4 cards in hand at comfortable life). Filter them out
+            // unless every remaining target is also harmless, in which case
+            // we'd rather hold the removal entirely.
+            CardCollection meaningfulTargets = CardLists.filter(list, new Predicate<Card>() {
+                @Override
+                public boolean apply(Card c) {
+                    return !ComputerUtilCard.isPunisherCurrentlyHarmless(c, ai);
+                }
+            });
+            if (!meaningfulTargets.isEmpty()) {
+                list = meaningfulTargets;
+            } else {
+                // All remaining valid targets are currently harmless; don't
+                // burn a removal spell on them.
+                return false;
+            }
             if (list.isEmpty()) {
                 return false;
             }

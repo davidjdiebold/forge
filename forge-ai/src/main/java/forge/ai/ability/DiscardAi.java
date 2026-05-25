@@ -6,6 +6,7 @@ import java.util.Map;
 
 import forge.ai.ComputerUtil;
 import forge.ai.ComputerUtilAbility;
+import forge.ai.ComputerUtilCard;
 import forge.ai.ComputerUtilCost;
 import forge.ai.ComputerUtilMana;
 import forge.ai.SpecialCardAi;
@@ -58,6 +59,10 @@ public class DiscardAi extends SpellAbilityAi {
 
         if (aiLogic.equals("VolrathsShapeshifter")) {
             return SpecialCardAi.VolrathsShapeshifter.consider(ai, sa);
+        }
+
+        if (aiLogic.equals("Recall")) {
+            return considerRecall(ai, sa);
         }
 
         final boolean humanHasHand = ai.getWeakestOpponent().getCardsIn(ZoneType.Hand).size() > 0;
@@ -230,5 +235,79 @@ public class DiscardAi extends SpellAbilityAi {
             return true;
         }
         return super.confirmAction(player, sa, mode, message, params);
+    }
+
+    /**
+     * Recall: pay XXU, discard X cards, then return X cards from graveyard to
+     * hand. Worth casting when we have junk in hand (extra lands, uncastable
+     * cards) and high-value cards in the graveyard worth recovering
+     * (Ancestral Recall, big creatures, key answers).
+     */
+    private static boolean considerRecall(final Player ai, final SpellAbility sa) {
+        // Need a non-trivial graveyard to recover from.
+        final CardCollectionView graveyard = ai.getCardsIn(ZoneType.Graveyard);
+        if (graveyard.size() < 2) {
+            return false;
+        }
+
+        // Determine max X we can afford. Each X costs 1 generic (XXU), and
+        // it discards X cards then returns X. We want X >= 2 for it to be
+        // strictly net-positive after paying U.
+        final int maxX = ComputerUtilCost.getMaxXValue(sa, ai, sa.isTrigger());
+        if (maxX < 2) {
+            return false;
+        }
+
+        // Count junk cards in hand we'd willingly discard (excluding Recall
+        // itself which is on the stack already, but still treat hand as the
+        // post-cast hand).
+        int junk = 0;
+        for (Card c : ai.getCardsIn(ZoneType.Hand)) {
+            if (c.equals(sa.getHostCard())) {
+                continue;
+            }
+            if (c.hasSVar("DoNotDiscardIfAble") || c.hasSVar("IsReanimatorCard")) {
+                continue;
+            }
+            if (ComputerUtil.isWorseThanDraw(ai, c)) {
+                junk++;
+            }
+        }
+        if (junk < 2) {
+            return false;
+        }
+
+        // Count valuable cards in graveyard worth recalling.
+        int valuableInGrave = 0;
+        for (Card c : graveyard) {
+            if (c.isLand()) {
+                continue;
+            }
+            if (c.isCreature() && ComputerUtilCard.evaluateCreature(c) >= 150) {
+                valuableInGrave++;
+                continue;
+            }
+            // Non-creature spells of any meaningful CMC, or anything flagged
+            // as a key card.
+            if (!c.isCreature() && c.getCMC() >= 1) {
+                valuableInGrave++;
+            } else if ("Ancestral Recall".equals(c.getName())
+                    || c.hasSVar("DoNotDiscardIfAble")) {
+                valuableInGrave++;
+            }
+        }
+        if (valuableInGrave < 2) {
+            return false;
+        }
+
+        // Choose X = min(maxX, junk, valuableInGrave) capped at a reasonable
+        // budget; recalling more than 4 cards at once tends to over-commit.
+        int chosenX = Math.min(Math.min(maxX, junk), valuableInGrave);
+        chosenX = Math.min(chosenX, 4);
+        if (chosenX < 2) {
+            return false;
+        }
+        sa.setXManaCostPaid(chosenX);
+        return true;
     }
 }

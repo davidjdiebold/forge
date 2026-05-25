@@ -298,7 +298,50 @@ public class PermanentAi extends SpellAbilityAi {
             return false;
         }
 
+        // Copy Artifact: skip the cast entirely when there is no genuinely
+        // valuable artifact to copy. Specifically, do not bother copying a
+        // Mox / cheap mana rock when we already have plenty of mana, and
+        // do not cast it when the only candidates are symmetric punishers
+        // we'd rather not duplicate.
+        if ("Copy Artifact".equals(source.getName())
+                && !isCopyArtifactWorthCasting(ai, sa)) {
+            return false;
+        }
+
         return true;
+    }
+
+    private static boolean isCopyArtifactWorthCasting(final Player ai, final SpellAbility sa) {
+        CardCollection arts = CardLists.filter(
+                ai.getGame().getCardsIn(ZoneType.Battlefield),
+                CardPredicates.Presets.ARTIFACTS);
+        arts.remove(sa.getHostCard());
+        if (arts.isEmpty()) {
+            return false;
+        }
+        int manaSources = ComputerUtilMana.getAvailableManaSources(ai, true).size();
+        boolean foundValuable = false;
+        for (Card a : arts) {
+            String name = a.getName();
+            // Symmetric punisher artifacts: not preferred copy targets.
+            if ("Ankh of Mishra".equalsIgnoreCase(name)
+                    || "Manabarbs".equalsIgnoreCase(name)
+                    || "Sulfuric Vortex".equalsIgnoreCase(name)
+                    || "Black Vise".equalsIgnoreCase(name)
+                    || "The Rack".equalsIgnoreCase(name)) {
+                continue;
+            }
+            // Mox-style 0-cost mana artifacts aren't worth a 2-mana copy
+            // when we already have enough mana sources.
+            boolean isMoxLike = name.startsWith("Mox ") || "Lotus Petal".equals(name)
+                    || "Chrome Mox".equals(name) || "Mox Diamond".equals(name);
+            if (isMoxLike && manaSources >= 6) {
+                continue;
+            }
+            foundValuable = true;
+            break;
+        }
+        return foundValuable;
     }
 
     private static boolean shouldDeferSlowBuildAroundForRemoval(final Player ai, final SpellAbility sa, final Card source) {

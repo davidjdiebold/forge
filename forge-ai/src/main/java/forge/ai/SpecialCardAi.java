@@ -144,6 +144,20 @@ public class SpecialCardAi {
 
             int minCMC = isLowCMCDeck ? 3 : 4; // probably not worth wasting a lotus on a low-CMC spell (<4 CMC), except in low-CMC decks, where 3 CMC may be fine
             int paidCMC = cost.getConvertedManaCost();
+
+            // X-cost spells: the real value is X (cards drawn / damage dealt),
+            // not the total mana paid. Refuse to burn a Black Lotus on a
+            // Braingeyser / Fireball / Stroke of Genius where X is small
+            // (e.g. X=2 turn 1 Braingeyser nets 0 cards after spending the
+            // Lotus and the Braingeyser itself).
+            if (sa != null && sa.getRootAbility() != null
+                    && sa.getRootAbility().costHasManaX()) {
+                Integer xPaid = sa.getRootAbility().getXManaCostPaid();
+                int x = xPaid != null ? xPaid : 0;
+                if (x < 3) {
+                    return false;
+                }
+            }
             // In a ramp deck, refuse to spend Black Lotus on a non-permanent
             // spell (instant/sorcery) unless the AI is in real trouble. Save
             // it for actually accelerating big permanents onto the board.

@@ -822,7 +822,15 @@ public class ComputerUtilMana {
                 payMultipleMana(cost, manaProduced, ai);
 
                 // remove from available lists
-                Iterables.removeIf(sourcesForShards.values(), CardTraitPredicates.isHostCard(saPayment.getHostCard()));
+                if (getCounterMultiActivationCount(saPayment) > 1) {
+                    // Counter-based reusable mana ability: remove only one
+                    // occurrence (one counter spent). The duplicated entries
+                    // added in groupSourcesByManaColor represent the
+                    // remaining activations.
+                    sourcesForShards.values().remove(saPayment);
+                } else {
+                    Iterables.removeIf(sourcesForShards.values(), CardTraitPredicates.isHostCard(saPayment.getHostCard()));
+                }
             } else {
                 final CostPayment pay = new CostPayment(saPayment.getPayCosts(), saPayment);
                 if (!pay.payComputerCosts(new AiCostDecision(ai, saPayment, effect))) {
@@ -1695,6 +1703,32 @@ public class ComputerUtilMana {
                 if (m.getHostCard().isSnow()) {
                     manaMap.put(ManaAtom.IS_SNOW, m);
                 }
+
+                // For mana abilities whose cost is "remove a counter from
+                // self" (e.g. Rasputin Dreamweaver, mana batteries without a
+                // tap cost), the same card can fire multiple times per turn,
+                // once per counter. Without this, the planner thinks Rasputin
+                // produces only {1} and refuses to cast a 6-mana spell using
+                // its dream counters. Duplicate every entry for m so the
+                // planner sees the full set of available activations.
+                int activations = getCounterMultiActivationCount(m);
+                if (activations > 1) {
+                    // Snapshot keys where m was added in this iteration, then
+                    // re-insert (activations - 1) extra times to reflect the
+                    // additional mana the card can produce this turn.
+                    java.util.List<Integer> keysToDuplicate = new java.util.ArrayList<>();
+                    for (java.util.Map.Entry<Integer, SpellAbility> e : manaMap.entries()) {
+                        if (e.getValue() == m) {
+                            keysToDuplicate.add(e.getKey());
+                        }
+                    }
+                    for (int rep = 0; rep < activations - 1; rep++) {
+                        for (Integer key : keysToDuplicate) {
+                            manaMap.put(key, m);
+                        }
+                    }
+                }
+
                 if (DEBUG_MANA_PAYMENT) {
                     System.out.println("DEBUG_MANA_PAYMENT: groupSourcesByManaColor manaMap  = " + manaMap);
                 }
@@ -1702,6 +1736,60 @@ public class ComputerUtilMana {
         } // end of mana sources loop
 
         return manaMap;
+    }
+
+    /**
+     * Returns how many times a mana ability can be activated this turn purely
+     * from its cost structure. Today this only handles "remove N counters from
+     * source" with no tap cost (the cost is reusable as long as counters are
+     * available). Returns 1 for normal abilities (tap-once-per-turn).
+     */
+    private static int getCounterMultiActivationCount(final SpellAbility m) {
+        if (m == null) {
+            return 1;
+        }
+        final Cost cost = m.getPayCosts();
+        if (cost == null) {
+            return 1;
+        }
+        if (cost.hasTapCost()) {
+            return 1; // tap cost limits us to one activation per turn
+        }
+        final Card src = m.getHostCard();
+        if (src == null) {
+            return 1;
+        }
+        int activations = -1;
+        for (CostPart part : cost.getCostParts()) {
+            if (part instanceof CostRemoveCounter) {
+                CostRemoveCounter crc = (CostRemoveCounter) part;
+                if (!crc.payCostFromSource()) {
+                    return 1;
+                }
+                int per;
+                try {
+                    per = Integer.parseInt(crc.getAmount());
+                } catch (NumberFormatException e) {
+                    return 1; // X / variable amount: don't predict
+                }
+                if (per <= 0) {
+                    return 1;
+                }
+                int avail = src.getCounters(crc.counter);
+                int possible = avail / per;
+                activations = activations < 0 ? possible : Math.min(activations, possible);
+            } else if (part instanceof CostPartMana) {
+                // mana cost on a mana ability already filtered out elsewhere
+                continue;
+            } else {
+                // unknown extra cost type: be conservative
+                return 1;
+            }
+        }
+        if (activations < 0) {
+            return 1; // no counter cost present
+        }
+        return Math.max(1, activations);
     }
 
     /**

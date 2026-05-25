@@ -247,6 +247,25 @@ public class ManaEffectAi extends SpellAbilityAi {
                         CardPredicates.lessCMC(searchCMC),
                         Predicates.or(CardPredicates.isColorless(), CardPredicates.isColor(producedColor))));
 
+        // Don't cast a ritual unless it actually unlocks a spell that isn't
+        // already castable without the ritual. Otherwise the AI can chain
+        // multiple Dark Rituals into mana burn (e.g. casts 2 Dark Rituals
+        // for nothing then loses 5 life). We require at least one castable
+        // spell whose CMC exceeds what we already have available without
+        // the ritual.
+        if (logic.startsWith("ManaRitual") && !logic.startsWith("ManaRitualBattery")) {
+            boolean ritualNeeded = false;
+            for (Card c : castableSpells) {
+                if (c.getCMC() > numManaSrcs) {
+                    ritualNeeded = true;
+                    break;
+                }
+            }
+            if (!ritualNeeded) {
+                return false;
+            }
+        }
+
         if (logic.startsWith("ManaRitualBattery")) {
             // Don't remove more counters than would be needed to cast the more expensive thing we want to cast,
             // otherwise the AI grabs too many counters at once.

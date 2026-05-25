@@ -136,9 +136,24 @@ public class SpecialCardAi {
             int numLowCMC = CardLists.count(allCards, CardPredicates.lessCMC(3));
 
             boolean isLowCMCDeck = numHighCMC <= 6 && numLowCMC >= 25;
-            
+            // High-CMC / ramp deck heuristic: lots of expensive cards in the
+            // 75. The lotus is precious here -- it should ramp out big
+            // permanents, not be burned on instants/sorceries (e.g. Psionic
+            // Blast on turn 1).
+            boolean isRampDeck = numHighCMC >= 8;
+
             int minCMC = isLowCMCDeck ? 3 : 4; // probably not worth wasting a lotus on a low-CMC spell (<4 CMC), except in low-CMC decks, where 3 CMC may be fine
             int paidCMC = cost.getConvertedManaCost();
+            // In a ramp deck, refuse to spend Black Lotus on a non-permanent
+            // spell (instant/sorcery) unless the AI is in real trouble. Save
+            // it for actually accelerating big permanents onto the board.
+            if (isRampDeck && sa != null && sa.getHostCard() != null && !sa.getHostCard().isPermanent()) {
+                boolean inDanger = ai.getLife() <= 5
+                        || forge.ai.ComputerUtil.aiLifeInDanger(ai, false, 0);
+                if (!inDanger) {
+                    return false;
+                }
+            }
             if (paidCMC < minCMC) {
                 // if it's a CMC 3 spell and we're more than one mana source short for it, might be worth it anyway
                 return paidCMC == 3 && numManaSrcs < 3;

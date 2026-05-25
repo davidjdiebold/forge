@@ -33,6 +33,8 @@ import forge.game.Game;
 import forge.game.ability.AbilityUtils;
 import forge.game.ability.ApiType;
 import forge.game.card.Card;
+import forge.game.card.CardCollection;
+import forge.game.card.CardCollectionView;
 import forge.game.card.CounterEnumType;
 import forge.game.card.CounterType;
 import forge.game.cost.*;
@@ -190,6 +192,10 @@ public class DrawAi extends SpellAbilityAi {
             final Card source = sa.getHostCard();
             final String sourceName = ComputerUtilAbility.getAbilitySourceName(sa);
 
+            if ("Bazaar of Baghdad".equals(sourceName)) {
+                return shouldActivateBazaarOfBaghdad(ai, sa, sub);
+            }
+
             int numHand = ai.getCardsIn(ZoneType.Hand).size();
             if ("Jace, Vryn's Prodigy".equals(sourceName) && ai.getCardsIn(ZoneType.Graveyard).size() > 3) {
                 return !ai.isCardInPlay("Jace, Telepath Unbound");
@@ -217,6 +223,99 @@ public class DrawAi extends SpellAbilityAi {
             if (numHand + numDraw < numDiscard) {
                 return false; // net loss of cards
             }
+        }
+        return true;
+    }
+
+    /**
+     * Bazaar of Baghdad specific heuristics: only activate when it provides
+     * real value (binning reanimation targets, dumping useless cards) and avoid
+     * discarding key reanimation enablers.
+     */
+    private boolean shouldActivateBazaarOfBaghdad(Player ai, SpellAbility sa, SpellAbility discardSub) {
+        final CardCollectionView handView = ai.getCardsIn(ZoneType.Hand);
+        final int handSize = handView.size();
+        // If hand is empty or nearly empty, the discard cost wipes our hand for no gain.
+        if (handSize <= 2) {
+            return false;
+        }
+        // Net change after activation: +2 draw, -3 discard => -1 card.
+        // Refuse if we would end up at 0 cards in hand (i.e. hand+2 < 3).
+        if (handSize + 2 < 3) {
+            return false;
+        }
+
+        CardCollection hand = new CardCollection(handView);
+        // We will be forced to discard 3 (out of hand+2). Identify "safe" discards.
+        int landCount = 0;
+        int uncastableCount = 0;
+        int reanimatorPayloadCount = 0; // big creatures worth binning
+        int castableImportant = 0;
+        boolean hasAnimateDeadEnabler = false;
+        boolean hasReanimateTargetCastableNow = false;
+
+        for (Card c : hand) {
+            if (c.isLand()) {
+                landCount++;
+                continue;
+            }
+            // Reanimation enablers we don't want to discard
+            if ("Animate Dead".equals(c.getName()) || c.hasSVar("IsReanimatorCard")
+                    || c.hasSVar("DoNotDiscardIfAble")) {
+                hasAnimateDeadEnabler = hasAnimateDeadEnabler || "Animate Dead".equals(c.getName())
+                        || c.hasSVar("IsReanimatorCard");
+                continue;
+            }
+            final SpellAbility spell = c.getFirstSpellAbility();
+            final boolean castable = spell != null
+                    && ComputerUtilMana.hasEnoughManaSourcesToCast(spell, ai);
+            if (c.isCreature() && c.getCMC() >= 4) {
+                // Big creature -> good reanimation target if we can't cast it
+                if (!castable) {
+                    reanimatorPayloadCount++;
+                } else {
+                    hasReanimateTargetCastableNow = true;
+                }
+                continue;
+            }
+            if (!castable) {
+                uncastableCount++;
+            } else {
+                castableImportant++;
+            }
+        }
+
+        // If the hand contains a castable big creature we could play this turn,
+        // prefer casting it over binning it.
+        if (hasReanimateTargetCastableNow && reanimatorPayloadCount == 0) {
+            return false;
+        }
+
+        // If discarding would consume the Animate Dead enabler, refuse.
+        // After drawing 2, we have handSize+2 cards. We must discard 3.
+        // Number of "safe" (non-enabler) candidates currently in hand:
+        int safeCandidates = handSize - (hasAnimateDeadEnabler ? 1 : 0);
+        // We assume drawn cards aren't enablers (unknown), but we'd rather not
+        // activate when we already have an enabler and few other discardables.
+        if (hasAnimateDeadEnabler && safeCandidates + 2 < 3) {
+            return false;
+        }
+
+        // Worthwhile when we have plenty of fodder (extra lands or uncastables)
+        // or big creatures to bin for reanimation.
+        int fodder = uncastableCount + reanimatorPayloadCount;
+        // Treat surplus lands (beyond 4 in play+hand) as fodder.
+        int landsInPlay = ai.getLandsInPlay().size();
+        int surplusLands = Math.max(0, landCount + landsInPlay - 5);
+        fodder += Math.min(landCount, surplusLands);
+
+        if (fodder < 3) {
+            // Not enough genuinely safe discards; activation would burn real spells.
+            return false;
+        }
+        // If most of the hand is castable real spells, don't bin them.
+        if (castableImportant >= 2 && reanimatorPayloadCount == 0) {
+            return false;
         }
         return true;
     }

@@ -445,6 +445,11 @@ public class AiController {
                         return false;
                     }
                 }
+                // Bazaar of Baghdad: one in play is enough; keep extra copies as discard fodder.
+                if ("Bazaar of Baghdad".equals(name)
+                        && Iterables.any(battlefield, CardPredicates.nameEquals(name))) {
+                    return false;
+                }
 
                 final CardCollectionView hand = player.getCardsIn(ZoneType.Hand);
                 CardCollection lands = new CardCollection(battlefield);

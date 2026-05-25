@@ -10,6 +10,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import forge.ai.AiController;
 import forge.ai.AiProps;
 import forge.ai.ComputerUtilAbility;
+import forge.ai.ComputerUtilCombat;
 import forge.ai.ComputerUtilCost;
 import forge.ai.ComputerUtilMana;
 import forge.ai.PlayerControllerAi;
@@ -230,6 +231,21 @@ public class CounterAi extends SpellAbilityAi {
 
         if (dontCounter) {
             return false;
+        }
+
+        // Hard guard: countering a 1-CMC (or 0-CMC non-mana-source) spell
+        // with a 2+ mana counterspell is a card-neutral, tempo-negative
+        // exchange unless the AI is in real trouble. Spend the mana on
+        // something else (development or removal) instead.
+        if (tgtSA != null && tgtCMC <= 1 && sa.isSpell()) {
+            int counterCmc = sa.getPayCosts() != null && sa.getPayCosts().getTotalMana() != null
+                    ? sa.getPayCosts().getTotalMana().getCMC() : 0;
+            boolean critical = ai.getLife() <= 5
+                    || ComputerUtilCombat.lifeInSeriousDanger(ai, game.getCombat())
+                    || isImmediateThreatToAi(ai, tgtSA);
+            if (counterCmc > tgtCMC && !critical) {
+                return false;
+            }
         }
 
         // Survival guard: if life is critical and the target spell isn't an

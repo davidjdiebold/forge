@@ -5,4 +5,5 @@ A:AB$ FlipOntoBattlefield | Cost$ 1 T | SubAbility$ DBDestroyTouched | Activatio
 SVar:DBDestroyTouched:DB$ Destroy | Defined$ Remembered | SubAbility$ DBDestroyChaosOrb
 SVar:DBDestroyChaosOrb:DB$ Destroy | Defined$ Self | AILogic$ Always | StackDescription$ None | SubAbility$ DBCleanup
 SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True
+SVar:AIPriorityModifier:-3
 Oracle:{1}, {T}: If Chaos Orb is on the battlefield, flip Chaos Orb onto the battlefield from a height of at least one foot. If Chaos Orb turns over completely at least once during the flip, destroy all nontoken permanents it touches. Then destroy Chaos Orb.

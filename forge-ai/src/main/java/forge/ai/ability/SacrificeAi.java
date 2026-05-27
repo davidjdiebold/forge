@@ -50,6 +50,10 @@ public class SacrificeAi extends SpellAbilityAi {
         final boolean destroy = sa.hasParam("Destroy");
         final String aiLogic = sa.getParamOrDefault("AILogic", "");
 
+        if ("TransmuteArtifact".equals(aiLogic)) {
+            return considerTransmuteArtifact(ai, sa);
+        }
+
         if (sa.usesTargeting()) {
             final PlayerCollection targetableOpps = ai.getOpponents().filter(PlayerPredicates.isTargetableBy(sa));
             if (targetableOpps.isEmpty()) {
@@ -163,6 +167,62 @@ public class SacrificeAi extends SpellAbilityAi {
     @Override
     public boolean confirmAction(Player player, SpellAbility sa, PlayerActionConfirmMode mode, String message, Map<String, Object> params) {
         return true;
+    }
+
+    /**
+     * Transmute Artifact: only cast when there's a worthwhile upgrade in the
+     * library AND the AI can afford to pay the X difference if needed.
+     * Otherwise the searched-for artifact ends up in the graveyard.
+     */
+    private static boolean considerTransmuteArtifact(final Player ai, final SpellAbility sa) {
+        // Find artifacts we can sacrifice (excluding the spell itself which is on the stack).
+        CardCollection ownArtifacts = CardLists.filter(ai.getCardsIn(ZoneType.Battlefield),
+                CardPredicates.Presets.ARTIFACTS);
+        ownArtifacts = CardLists.filter(ownArtifacts, CardPredicates.canBeSacrificedBy(sa, false));
+        if (ownArtifacts.isEmpty()) {
+            return false;
+        }
+
+        // Determine the cheapest artifact we would sacrifice (lowest CMC = least loss).
+        Card sacCandidate = null;
+        int minCMC = Integer.MAX_VALUE;
+        for (Card c : ownArtifacts) {
+            if (c.getCMC() < minCMC) {
+                minCMC = c.getCMC();
+                sacCandidate = c;
+            }
+        }
+        if (sacCandidate == null) {
+            return false;
+        }
+        int sacCMC = sacCandidate.getCMC();
+
+        // Find candidate artifacts in our library.
+        CardCollection libArtifacts = CardLists.filter(ai.getCardsIn(ZoneType.Library),
+                CardPredicates.Presets.ARTIFACTS);
+        if (libArtifacts.isEmpty()) {
+            return false;
+        }
+
+        // Available mana after paying the UU cost of Transmute Artifact itself.
+        int totalManaSources = forge.ai.ComputerUtilMana.getAvailableManaSources(ai, true).size();
+        // Subtract this spell's own cost (UU = 2). If we're being evaluated, the
+        // spell isn't yet committed, so this approximates leftover mana.
+        int leftover = Math.max(0, totalManaSources - 2);
+
+        // Look for a useful upgrade we can actually fetch:
+        // libCMC <= sacCMC + leftover (so X can be paid if needed)
+        // AND the new artifact must be a real upgrade (strictly higher CMC).
+        for (Card lib : libArtifacts) {
+            int libCMC = lib.getCMC();
+            if (libCMC > sacCMC + leftover) {
+                continue;
+            }
+            if (libCMC > sacCMC) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static boolean doSacOneEachLogic(Player ai, SpellAbility sa) {

@@ -245,6 +245,13 @@ public class PermanentCreatureAi extends PermanentAi {
             if (shouldDeferCreatureToHandleThreat(ai, sa, copy)) {
                 return false;
             }
+            // Don't drop creatures that can be repeatedly pinged off by an
+            // opposing source (e.g. Prodigal Sorcerer, Triskelion, Pestilence)
+            // unless the creature provides meaningful value on entry / cannot
+            // realistically be held.
+            if (shouldDeferDueToOpposingPingers(ai, sa, copy)) {
+                return false;
+            }
             // Defer non-artifact creatures while The Abyss is in play unless we
             // can swarm (deploy multiple this turn) so the recurring kill is
             // amortized. Otherwise we just feed the trigger one creature per turn.
@@ -357,6 +364,85 @@ public class PermanentCreatureAi extends PermanentAi {
                 if (hasRemovalSpellInHandFor(ai, sa, threat)) {
                     return true;
                 }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if any opposing permanent can repeatedly ping/damage this
+     * creature for at least its toughness (e.g. Prodigal Sorcerer, Triskelion,
+     * Pestilence) and the creature isn't worth feeding to it (no meaningful
+     * ETB value). In that case we'd rather hold it.
+     */
+    private static boolean shouldDeferDueToOpposingPingers(final Player ai, final SpellAbility sa, final Card creatureLKI) {
+        final int toughness = creatureLKI.getNetToughness();
+        if (toughness <= 0) {
+            return false;
+        }
+        // Creatures with meaningful ETB triggers may still be worth casting
+        // even if they die immediately after.
+        final Card actual = sa.getHostCard();
+        if (actual.hasETBTrigger(true) || actual.hasETBReplacement()) {
+            return false;
+        }
+        // If the creature has indestructible or protection from the likely
+        // damage color it'll be fine anyway; let other checks handle it.
+        if (actual.hasKeyword(Keyword.INDESTRUCTIBLE)) {
+            return false;
+        }
+        for (Player opp : ai.getOpponents()) {
+            for (Card threat : opp.getCardsIn(ZoneType.Battlefield)) {
+                // Activated pingers (Prodigal Sorcerer / Triskelion / etc.)
+                Integer dmgFromAbility = damagePotentialAgainstAiCreature(threat);
+                if (dmgFromAbility != null && dmgFromAbility >= toughness) {
+                    return true;
+                }
+                // Recurring upkeep damage-to-all sources (Pestilence-like).
+                if (hasRecurringDamageToAllCreatures(threat, toughness)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Detects permanents with a recurring (upkeep/at-phase) ability that
+     * damages all creatures (Pestilence, Earthquake-style enchantments, etc.)
+     * for at least the given amount.
+     */
+    private static boolean hasRecurringDamageToAllCreatures(final Card threat, final int toughness) {
+        // Check activated abilities that deal damage to each creature
+        for (SpellAbility ab : threat.getSpellAbilities()) {
+            if (ab.getApi() != ApiType.DamageAll || !ab.isAbility()) {
+                continue;
+            }
+            String numDmg = ab.getParam("NumDmg");
+            if (numDmg == null) {
+                continue;
+            }
+            int dmg = AbilityUtils.calculateAmount(threat, numDmg, ab);
+            String validCards = ab.getParamOrDefault("ValidCards", "");
+            if (dmg >= toughness && (validCards.contains("Creature") || validCards.isEmpty())) {
+                return true;
+            }
+        }
+        // Pestilence-like triggers (deal damage during upkeep)
+        for (forge.game.trigger.Trigger t : threat.getTriggers()) {
+            if (t.getMode() != forge.game.trigger.TriggerType.Phase) {
+                continue;
+            }
+            String execName = t.getParam("Execute");
+            if (execName == null) {
+                continue;
+            }
+            String svar = threat.getSVar(execName);
+            if (svar == null) {
+                continue;
+            }
+            if (svar.contains("DB$ DamageAll") && svar.contains("ValidCards$ Creature")) {
+                return true;
             }
         }
         return false;

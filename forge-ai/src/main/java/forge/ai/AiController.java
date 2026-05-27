@@ -407,6 +407,27 @@ public class AiController {
     private CardCollection filterLandsToPlay(CardCollection landList) {
         final CardCollectionView hand = player.getCardsIn(ZoneType.Hand);
         CardCollection nonLandList = CardLists.filter(hand, Predicates.not(CardPredicates.Presets.LANDS));
+
+        // If we already have enough mana to cast our largest spell-in-hand and
+        // we're holding a card that consumes cards from hand (e.g. Recall, which
+        // discards X cards to retrieve them from the graveyard), keep extra
+        // lands in hand as discard fuel rather than dumping them onto the
+        // battlefield.
+        {
+            CardCollection landsInPlayNow = CardLists.filter(player.getCardsIn(ZoneType.Battlefield), Presets.LANDS);
+            int maxCmcInHandNow = Aggregates.max(hand, CardPredicates.Accessors.fnGetCmc);
+            boolean enoughMana = landsInPlayNow.size() >= Math.max(maxCmcInHandNow, 1);
+            if (enoughMana) {
+                for (Card c : hand) {
+                    for (SpellAbility sa : c.getSpellAbilities()) {
+                        if ("Recall".equals(sa.getParam("AILogic"))) {
+                            return null;
+                        }
+                    }
+                }
+            }
+        }
+
         if (landList.size() == 1 && nonLandList.size() < 3) {
             CardCollectionView cardsInPlay = player.getCardsIn(ZoneType.Battlefield);
             CardCollection landsInPlay = CardLists.filter(cardsInPlay, Presets.LANDS);

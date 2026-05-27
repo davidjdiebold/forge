@@ -874,9 +874,21 @@ public class AiBlockController {
                 // enough and the new one would deal the remaining damage
                 final int currentDamage = ComputerUtilCombat.totalDamageOfBlockers(attacker, combat.getBlockers(attacker));
                 final int additionalDamage = ComputerUtilCombat.dealsDamageAsBlocker(attacker, blocker);
+                // Track the cumulative value of blockers we're piling on this
+                // attacker; if the total exceeds the attacker's value it is no
+                // longer a good trade. Otherwise we get cases like the AI
+                // chumping with 3 Tetravite tokens (3 x ~100 = ~300) to kill a
+                // creature worth ~300, breaking even at best while losing all
+                // tokens. Better to lose one token / take the damage in many
+                // cases.
+                int cumulativeBlockerValue = ComputerUtilCard.evaluateCreature(blocker);
+                for (Card existing : combat.getBlockers(attacker)) {
+                    cumulativeBlockerValue += ComputerUtilCard.evaluateCreature(existing);
+                }
                 if (damageNeeded > currentDamage
                         && damageNeeded <= currentDamage + additionalDamage
                         && ComputerUtilCard.evaluateCreature(blocker) + diff < ComputerUtilCard.evaluateCreature(attacker)
+                        && cumulativeBlockerValue + diff < ComputerUtilCard.evaluateCreature(attacker)
                         && CombatUtil.canBlock(attacker, blocker, combat)
                         && !ComputerUtilCombat.canDestroyBlockerBeforeFirstStrike(blocker, attacker, false)) {
                     combat.addBlocker(attacker, blocker);

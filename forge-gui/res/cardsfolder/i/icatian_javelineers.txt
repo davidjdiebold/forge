@@ -4,4 +4,5 @@ Types:Creature Human Soldier
 PT:1/1
 K:etbCounter:JAVELIN:1
 A:AB$ DealDamage | Cost$ T SubCounter<1/JAVELIN> | ValidTgts$ Any | NumDmg$ 1 | SpellDescription$ CARDNAME deals 1 damage to any target.
+SVar:AIPriorityModifier:-1
 Oracle:Icatian Javelineers enters the battlefield with a javelin counter on it.\n{T}, Remove a javelin counter from Icatian Javelineers: It deals 1 damage to any target.

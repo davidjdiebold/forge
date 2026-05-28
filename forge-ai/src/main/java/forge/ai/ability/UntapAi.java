@@ -42,9 +42,66 @@ public class UntapAi extends SpellAbilityAi {
             return doPreventCombatDamageLogic(ai, sa);
             // In the future if you want to give Pseudo vigilance to a creature you attacked with
             // activate during your own during the end of combat step
+        } else if ("ManaVaultUntap".equals(aiLogic)) {
+            return doManaVaultUntapLogic(ai, sa);
         }
 
         return !("Never".equals(aiLogic));
+    }
+
+    /**
+     * Mana Vault upkeep: pay {4} to untap only when it actually helps cast
+     * a spell this turn (or near-term) that we couldn't otherwise cast.
+     * Otherwise paying 4 is just churning mana for nothing.
+     */
+    private boolean doManaVaultUntapLogic(final Player ai, final SpellAbility sa) {
+        final Card source = sa.getHostCard();
+        if (!source.isTapped()) {
+            return false;
+        }
+        // Available mana sources right now (does not include Mana Vault since
+        // it is tapped). Subtract the 4 needed for the upkeep payment.
+        int currentSources = ComputerUtilMana.getAvailableManaSources(ai, true).size();
+        if (currentSources < 4) {
+            return false;
+        }
+        // If we have a castable small spell (CMC <= 4) we'd cast this turn,
+        // paying 4 for the upkeep eats into that mana. Skip the untap.
+        for (Card h : ai.getCardsIn(ZoneType.Hand)) {
+            if (h.isLand()) {
+                continue;
+            }
+            SpellAbility cast = h.getFirstSpellAbility();
+            if (cast == null) {
+                continue;
+            }
+            int cmc = cast.getPayCosts() != null && cast.getPayCosts().getTotalMana() != null
+                    ? cast.getPayCosts().getTotalMana().getCMC() : 0;
+            if (cmc >= 1 && cmc <= 4 && cmc <= currentSources) {
+                return false;
+            }
+        }
+        int leftoverAfterPay = currentSources - 4; // mana left after paying upkeep cost
+        int totalIfUntapped = leftoverAfterPay + 3; // Mana Vault adds CCC
+        // Find a castable spell in hand whose CMC fits AFTER untap but NOT before.
+        for (Card h : ai.getCardsIn(ZoneType.Hand)) {
+            if (h.isLand()) {
+                continue;
+            }
+            SpellAbility cast = h.getFirstSpellAbility();
+            if (cast == null) {
+                continue;
+            }
+            int cmc = cast.getPayCosts() != null && cast.getPayCosts().getTotalMana() != null
+                    ? cast.getPayCosts().getTotalMana().getCMC() : 0;
+            if (cmc <= currentSources) {
+                continue; // already castable without the untap
+            }
+            if (cmc <= totalIfUntapped) {
+                return true; // untap unlocks this spell
+            }
+        }
+        return false;
     }
 
     @Override

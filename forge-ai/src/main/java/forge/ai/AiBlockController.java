@@ -1195,6 +1195,12 @@ public class AiBlockController {
             }
         }
 
+        // Final pass: if any attacker is still unblocked but we have an
+        // available blocker that wouldn't die from blocking it, just block.
+        // Avoiding free damage is usually better than holding a creature back
+        // for no reason.
+        blockWithSafeBlockersIfPossible(combat);
+
         // block requirements
         // TODO because this isn't done earlier, sometimes a good block will enforce a restriction that prevents another for the requirement
         makeRequiredBlocks(combat);
@@ -1265,6 +1271,47 @@ public class AiBlockController {
                 continue;
             }
             Card blocker = ComputerUtilCard.getWorstCreatureAI(killers);
+            if (blocker == null) {
+                continue;
+            }
+            combat.addBlocker(attacker, blocker);
+            blockersLeft.remove(blocker);
+            attackersLeft.remove(attacker);
+        }
+    }
+
+    /**
+     * Final defensive pass: for any unblocked attacker we still have a
+     * blocker that wouldn't die against it, just block. There's no reason to
+     * let damage through when a blocker can survive the combat — even if the
+     * attacker also survives, free damage is worse than no exchange.
+     */
+    private void blockWithSafeBlockersIfPossible(final Combat combat) {
+        if (attackersLeft.isEmpty() || blockersLeft.isEmpty()) {
+            return;
+        }
+        List<Card> snapshot = new ArrayList<>(attackersLeft);
+        for (Card attacker : snapshot) {
+            if (!attackersLeft.contains(attacker)) {
+                continue;
+            }
+            if (StaticAbilityAssignCombatDamageAsUnblocked.assignCombatDamageAsUnblocked(attacker)) {
+                continue;
+            }
+            if (CombatUtil.getMinNumBlockersForAttacker(attacker,
+                    combat.getDefenderPlayerByAttacker(attacker)) > 1) {
+                continue; // handled by gang blocks
+            }
+            List<Card> possible = getPossibleBlockers(combat, attacker, blockersLeft, true);
+            if (possible.isEmpty()) {
+                continue;
+            }
+            List<Card> safe = getSafeBlockers(combat, attacker, possible);
+            if (safe.isEmpty()) {
+                continue;
+            }
+            // Pick the cheapest safe blocker so we don't waste a big creature.
+            Card blocker = ComputerUtilCard.getWorstCreatureAI(safe);
             if (blocker == null) {
                 continue;
             }

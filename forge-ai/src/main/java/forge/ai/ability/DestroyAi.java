@@ -218,6 +218,14 @@ public class DestroyAi extends SpellAbilityAi {
 
             // Try to avoid targeting creatures that are dead on board
             list = ComputerUtil.filterCreaturesThatWillDieThisTurn(ai, list, sa);
+            // Don't queue a second destruction on a permanent we're already
+            // removing via a spell on the stack.
+            list = CardLists.filter(list, new Predicate<Card>() {
+                @Override
+                public boolean apply(Card c) {
+                    return !isAlreadyBeingRemovedOnStack(ai, c);
+                }
+            });
             // Don't waste removal on punisher artifacts/enchantments that are
             // currently doing nothing meaningful (e.g. Black Vise while we
             // have <=4 cards in hand at comfortable life). Filter them out
@@ -361,6 +369,14 @@ public class DestroyAi extends SpellAbilityAi {
 
             // Try to avoid targeting creatures that are dead on board
             list = ComputerUtil.filterCreaturesThatWillDieThisTurn(ai, list, sa);
+            // Don't queue a second destruction on a permanent we're already
+            // removing via a spell on the stack.
+            list = CardLists.filter(list, new Predicate<Card>() {
+                @Override
+                public boolean apply(Card c) {
+                    return !isAlreadyBeingRemovedOnStack(ai, c);
+                }
+            });
 
             CardCollection preferred = CardLists.getNotKeyword(list, Keyword.INDESTRUCTIBLE);
             preferred = CardLists.filterControlledBy(preferred, ai.getOpponents());
@@ -487,6 +503,47 @@ public class DestroyAi extends SpellAbilityAi {
         } else {
             return tempoCheck;
         }
+    }
+
+    /**
+     * Returns true if the given card is already being removed by a spell on
+     * the stack controlled by the AI (destroy / exile / lethal damage).
+     * Used to avoid wasting a second removal on the same target.
+     */
+    private static boolean isAlreadyBeingRemovedOnStack(final Player ai, final Card target) {
+        if (target == null) {
+            return false;
+        }
+        for (forge.game.spellability.SpellAbilityStackInstance si : ai.getGame().getStack()) {
+            SpellAbility stackSa = si.getSpellAbility();
+            if (stackSa == null) {
+                continue;
+            }
+            if (!ai.equals(stackSa.getActivatingPlayer())) {
+                continue;
+            }
+            if (!stackSa.usesTargeting()) {
+                continue;
+            }
+            if (!stackSa.getTargets().getTargetCards().contains(target)) {
+                continue;
+            }
+            forge.game.ability.ApiType api = stackSa.getApi();
+            if (api == forge.game.ability.ApiType.Destroy
+                    || api == forge.game.ability.ApiType.ChangeZone) {
+                return true;
+            }
+            if (api == forge.game.ability.ApiType.DealDamage) {
+                String numDmg = stackSa.getParam("NumDmg");
+                if (numDmg != null) {
+                    int dmg = forge.game.ability.AbilityUtils.calculateAmount(stackSa.getHostCard(), numDmg, stackSa);
+                    if (target.isCreature() && dmg >= target.getNetToughness()) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
 }

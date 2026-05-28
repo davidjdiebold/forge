@@ -404,6 +404,33 @@ public class AiController {
         return spellAbility;
     }
 
+    /**
+     * A "utility" land is a land whose value goes beyond producing mana:
+     * e.g. Mishra's Factory (animate), Library of Alexandria (draw),
+     * Strip Mine / Wasteland (destroy a land), Mishra's Workshop (taps for
+     * lots of mana but only for artifacts), Bazaar of Baghdad (draw/discard).
+     * Such lands should be played even when the AI already has enough mana
+     * sources to cast its hand.
+     */
+    private static boolean isUtilityLand(final Card c) {
+        if (c == null || !c.isLand()) {
+            return false;
+        }
+        if (c.getType().isBasic()) {
+            return false;
+        }
+        for (final SpellAbility sa : c.getSpellAbilities()) {
+            if (sa.isManaAbility()) {
+                continue;
+            }
+            // Any non-mana activated ability makes it a utility land.
+            return true;
+        }
+        // Lands that animate themselves into creatures via static keywords
+        // (rare) — fall through to false.
+        return false;
+    }
+
     private CardCollection filterLandsToPlay(CardCollection landList) {
         final CardCollectionView hand = player.getCardsIn(ZoneType.Hand);
         CardCollection nonLandList = CardLists.filter(hand, Predicates.not(CardPredicates.Presets.LANDS));
@@ -421,7 +448,20 @@ public class AiController {
                 for (Card c : hand) {
                     for (SpellAbility sa : c.getSpellAbilities()) {
                         if ("Recall".equals(sa.getParam("AILogic"))) {
-                            return null;
+                            // keep non-utility lands as discard fuel, but
+                            // still allow playing utility lands like
+                            // Mishra's Factory / Library of Alexandria.
+                            CardCollection utility = CardLists.filter(landList, new Predicate<Card>() {
+                                @Override
+                                public boolean apply(Card l) {
+                                    return isUtilityLand(l);
+                                }
+                            });
+                            if (utility.isEmpty()) {
+                                return null;
+                            }
+                            landList = utility;
+                            break;
                         }
                     }
                 }
@@ -490,6 +530,14 @@ public class AiController {
                         if (sa.isCycling()) {
                             return false;
                         }
+                    }
+
+                    // Allow utility lands (Mishra's Factory, Library of Alexandria,
+                    // Strip Mine, Mishra's Workshop, Bazaar of Baghdad, ...) even
+                    // when we already have enough mana sources. They provide
+                    // value beyond mana production.
+                    if (isUtilityLand(c)) {
+                        return player.canPlayLand(c);
                     }
                 }
 

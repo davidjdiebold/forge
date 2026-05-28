@@ -173,6 +173,30 @@ public class SpecialCardAi {
                 return paidCMC == 3 && numManaSrcs < 3;
             }
 
+            // If the AI already has enough non-expendable (reusable, non-self-
+            // sacrificing) mana producers to pay for the spell, don't burn the
+            // Lotus. Black Lotus / Lotus Petal-style sources are expendable and
+            // should be saved for spells we genuinely couldn't otherwise cast.
+            int reusableSources = 0;
+            for (Card src : manaSources) {
+                if (src.equals(sa != null ? sa.getHostCard() : null)) {
+                    continue;
+                }
+                boolean reusable = false;
+                for (SpellAbility ma : src.getManaAbilities()) {
+                    if (ma.getPayCosts() != null && ma.getPayCosts().isReusuableResource()) {
+                        reusable = true;
+                        break;
+                    }
+                }
+                if (reusable) {
+                    reusableSources++;
+                }
+            }
+            if (reusableSources >= paidCMC) {
+                return false;
+            }
+
             return true;
         }
     }

@@ -445,23 +445,44 @@ public class AiController {
             int maxCmcInHandNow = Aggregates.max(hand, CardPredicates.Accessors.fnGetCmc);
             boolean enoughMana = landsInPlayNow.size() >= Math.max(maxCmcInHandNow, 1);
             if (enoughMana) {
+                // Detect X-cost spells in hand that scale with available
+                // mana (Recall / Braingeyser / Fireball etc.). When those
+                // are present, more lands directly improve them, so keep
+                // playing lands even if "basic" CMCs are already covered.
+                boolean hasXScalingSpell = false;
                 for (Card c : hand) {
                     for (SpellAbility sa : c.getSpellAbilities()) {
-                        if ("Recall".equals(sa.getParam("AILogic"))) {
-                            // keep non-utility lands as discard fuel, but
-                            // still allow playing utility lands like
-                            // Mishra's Factory / Library of Alexandria.
-                            CardCollection utility = CardLists.filter(landList, new Predicate<Card>() {
-                                @Override
-                                public boolean apply(Card l) {
-                                    return isUtilityLand(l);
-                                }
-                            });
-                            if (utility.isEmpty()) {
-                                return null;
-                            }
-                            landList = utility;
+                        Cost pc = sa.getPayCosts();
+                        if (pc != null && pc.hasXInAnyCostPart()) {
+                            hasXScalingSpell = true;
                             break;
+                        }
+                    }
+                    if (hasXScalingSpell) {
+                        break;
+                    }
+                }
+
+                if (!hasXScalingSpell) {
+                    for (Card c : hand) {
+                        for (SpellAbility sa : c.getSpellAbilities()) {
+                            if ("Recall".equals(sa.getParam("AILogic"))) {
+                                // keep non-utility lands as discard fuel,
+                                // but still allow playing utility lands
+                                // like Mishra's Factory or Library of
+                                // Alexandria.
+                                CardCollection utility = CardLists.filter(landList, new Predicate<Card>() {
+                                    @Override
+                                    public boolean apply(Card l) {
+                                        return isUtilityLand(l);
+                                    }
+                                });
+                                if (utility.isEmpty()) {
+                                    return null;
+                                }
+                                landList = utility;
+                                break;
+                            }
                         }
                     }
                 }

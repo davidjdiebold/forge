@@ -270,7 +270,13 @@ public class PermanentCreatureAi extends PermanentAi {
      * battlefield, hold non-artifact creatures unless we can swarm.
      */
     private static boolean shouldDeferUnderAbyss(final Player ai, final SpellAbility sa, final Card creatureLKI) {
+        // Artifact creatures and creatures with protection from black are
+        // immune to The Abyss (a black enchantment whose ability "targets"
+        // nonartifact creatures). Anything else will be killed every upkeep.
         if (creatureLKI.isArtifact()) {
+            return false;
+        }
+        if (hasProtectionFromBlack(creatureLKI)) {
             return false;
         }
         boolean abyssInPlay = false;
@@ -283,22 +289,17 @@ public class PermanentCreatureAi extends PermanentAi {
         if (!abyssInPlay) {
             return false;
         }
-        // Count non-artifact creatures we already control. The Abyss will kill
-        // exactly one per upkeep, so each additional one we add is only worth
-        // it if we're stacking multiple this turn (so the loss is amortized).
-        int ownNonArtCreatures = 0;
-        for (Card c : ai.getCreaturesInPlay()) {
-            if (!c.isArtifact()) {
-                ownNonArtCreatures++;
-            }
-        }
-        // Count additional non-artifact creatures still in hand that the AI
-        // could plausibly chain after this one to actually swarm.
-        int otherNonArtInHand = 0;
+        // Count non-artifact / non-PfB creatures we could chain this turn so
+        // the loss is amortized (The Abyss kills only one nonartifact creature
+        // per upkeep). If we can't swarm, casting one is just feeding it.
+        int otherDeployableThisTurn = 0;
         final Card self = sa.getHostCard();
         for (Card h : ai.getCardsIn(ZoneType.Hand)) {
             if (h.equals(self) || h.isLand() || h.isArtifact() || !h.isCreature()) {
                 continue;
+            }
+            if (hasProtectionFromBlack(h)) {
+                continue; // safe regardless, doesn't count toward swarm need
             }
             SpellAbility cast = h.getFirstSpellAbility();
             if (cast == null) {
@@ -306,12 +307,30 @@ public class PermanentCreatureAi extends PermanentAi {
             }
             cast.setActivatingPlayer(ai, true);
             if (ComputerUtilCost.canPayCost(cast, ai, false)) {
-                otherNonArtInHand++;
+                otherDeployableThisTurn++;
             }
         }
-        // Already have at least one non-art creature out and no swarm follow-up
-        // available -> just feeding The Abyss. Hold it.
-        return ownNonArtCreatures >= 1 && otherNonArtInHand == 0;
+        // No swarm available -> casting this single non-art creature will just
+        // be sacrificed on opponent's next upkeep. Hold it.
+        return otherDeployableThisTurn == 0;
+    }
+
+    private static boolean hasProtectionFromBlack(final Card c) {
+        for (forge.game.keyword.KeywordInterface ki : c.getKeywords()) {
+            String kw = ki.getOriginal();
+            if (kw == null) {
+                continue;
+            }
+            if (kw.startsWith("Protection from black")) {
+                return true;
+            }
+            if (kw.equals("Protection from all colors")
+                    || kw.equals("Protection from monocolored")
+                    || kw.startsWith("Protection from each color")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isAbyssLike(final Card c) {

@@ -1967,7 +1967,7 @@ public class AiController {
                     }
                 } else {
                     CardCollectionView viableOptions = CardLists.filter(pool, CardPredicates.isControlledByAnyOf(sa.getActivatingPlayer().getOpponents()), CardPredicates.Presets.CAN_BE_DESTROYED);
-                    Card best = ComputerUtilCard.getBestAI(viableOptions);
+                    Card best = pickChaosOrbStyleTarget(sa.getActivatingPlayer(), viableOptions);
                     if (best != null) {
                         result.add(best);
                         break;
@@ -2011,6 +2011,62 @@ public class AiController {
         }
 
         return result;
+    }
+
+    /**
+     * Chaos Orb-style targeting: prefer non-land permanents and utility lands
+     * (Library of Alexandria, Mishra's Factory, Strip Mine, ...) over plain
+     * basic / dual lands. If the only remaining options are basic or dual
+     * lands and the opponent already has ample mana, blowing the Orb on one
+     * of those lands accomplishes nothing — skip them.
+     */
+    private static Card pickChaosOrbStyleTarget(final Player activator, final CardCollectionView viable) {
+        if (viable == null || viable.isEmpty()) {
+            return null;
+        }
+        // Non-land permanents are always preferred targets.
+        CardCollection nonLand = CardLists.filter(viable, Predicates.not(CardPredicates.Presets.LANDS));
+        if (!nonLand.isEmpty()) {
+            return ComputerUtilCard.getBestAI(nonLand);
+        }
+        // Utility lands: any land with a non-mana activated ability (Mishra's
+        // Factory, Library of Alexandria, Strip Mine, Maze of Ith ...). Treat
+        // these as worth the Orb.
+        CardCollection utility = CardLists.filter(viable, new Predicate<Card>() {
+            @Override
+            public boolean apply(Card c) {
+                if (!c.isLand()) {
+                    return false;
+                }
+                for (SpellAbility ab : c.getSpellAbilities()) {
+                    if (ab.isManaAbility()) {
+                        continue;
+                    }
+                    if (ab.isActivatedAbility()) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        });
+        if (!utility.isEmpty()) {
+            return ComputerUtilCard.getBestAI(utility);
+        }
+        // Remaining options are plain basic/dual lands. Only worth using the
+        // Orb on them if the opponent is still mana-starved or has missed a
+        // recent land drop (turn count > land count).
+        Player opp = activator.getStrongestOpponent();
+        if (opp == null) {
+            return ComputerUtilCard.getBestAI(viable);
+        }
+        int oppLands = opp.getLandsInPlay().size();
+        int turn = activator.getGame().getPhaseHandler().getTurn();
+        boolean oppManaStarved = oppLands < 5;
+        boolean oppMissedLandDrop = oppLands < turn - 1;
+        if (oppManaStarved || oppMissedLandDrop) {
+            return ComputerUtilCard.getBestAI(viable);
+        }
+        return null;
     }
 
     public Map<DeckSection, List<? extends PaperCard>> complainCardsCantPlayWell(Deck myDeck) {

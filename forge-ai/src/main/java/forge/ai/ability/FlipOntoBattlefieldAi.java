@@ -49,13 +49,37 @@ public class FlipOntoBattlefieldAi extends SpellAbilityAi {
         // Only use Chaos Orb against high-value targets since it sacrifices itself
         CardCollectionView oppPerms = CardLists.filter(aiPlayer.getOpponents().getCardsIn(ZoneType.Battlefield),
                 CardPredicates.Presets.CAN_BE_DESTROYED);
-        // Look for non-land permanents or non-basic lands worth destroying
+        // Look for non-land permanents or genuinely useful lands worth destroying.
+        // Plain basic / dual lands are NOT worth the Orb once the opponent has
+        // enough mana — only utility lands (with non-mana activated abilities,
+        // e.g. Mishra's Factory, Library of Alexandria, Strip Mine) qualify.
+        final int oppLands = aiPlayer.getStrongestOpponent() != null
+                ? aiPlayer.getStrongestOpponent().getLandsInPlay().size() : 0;
+        final int turn = ph.getTurn();
+        final boolean oppManaStarved = oppLands < 5;
+        final boolean oppMissedLandDrop = oppLands < turn - 1;
         CardCollectionView highValueTargets = CardLists.filter(oppPerms, new Predicate<Card>() {
             @Override
             public boolean apply(Card card) {
-                return card.isCreature() || card.isPlaneswalker() || card.isArtifact()
-                        || (card.isEnchantment() && !card.isAura())
-                        || (card.isLand() && !card.isBasicLand());
+                if (card.isCreature() || card.isPlaneswalker() || card.isArtifact()
+                        || (card.isEnchantment() && !card.isAura())) {
+                    return true;
+                }
+                if (!card.isLand()) {
+                    return false;
+                }
+                // Utility land = has a non-mana activated ability
+                for (SpellAbility ab : card.getSpellAbilities()) {
+                    if (ab.isManaAbility()) {
+                        continue;
+                    }
+                    if (ab.isActivatedAbility()) {
+                        return true;
+                    }
+                }
+                // Plain basic / dual land. Only worth it when opponent is still
+                // mana-starved or has visibly missed a recent land drop.
+                return oppManaStarved || oppMissedLandDrop;
             }
         });
         return !highValueTargets.isEmpty();

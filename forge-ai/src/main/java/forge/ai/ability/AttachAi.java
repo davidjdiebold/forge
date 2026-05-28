@@ -599,12 +599,21 @@ public class AttachAi extends SpellAbilityAi {
         //TODO for Reanimate Auras i need the new Attach Spell, in later versions it might be part of the Enchant Keyword
         attachSourceLki.addSpellAbility(AbilityFactory.getAbility(attachSourceLki, "NewAttach"));
 
+        // If The Abyss (or any nonartifact-creature-destroying upkeep
+        // permanent) is in play, only consider reanimation targets that the
+        // Abyss can't kill — artifact creatures and creatures with protection
+        // from black. Otherwise reanimation is just a 1-for-1 sacrifice loss.
+        final boolean abyssActive = isAbyssActiveAgainst(ai);
+
         // Evaluate candidates AS IF reanimated and attached, so debuffs like Animate
         // Dead's "-1/-0" are factored into the comparison. The chosen creature
         // should be the best post-attach option, not the best printed card.
         Card best = null;
         int bestEval = Integer.MIN_VALUE;
         for (Card c : list) {
+            if (abyssActive && !c.isArtifact() && !creatureHasProtectionFromBlack(c)) {
+                continue;
+            }
             final Card lki = CardUtil.getLKICopy(c);
             // need to fake it as if lki would be on the battlefield
             lki.setLastKnownZone(ai.getZone(ZoneType.Battlefield));
@@ -657,6 +666,50 @@ public class AttachAi extends SpellAbilityAi {
         }
 
         return best;
+    }
+
+    // True if any opponent (or AI itself) has an Abyss-like permanent active.
+    // Abyss-like = upkeep trigger that destroys a target nonartifact creature.
+    private static boolean isAbyssActiveAgainst(final Player ai) {
+        for (Card c : ai.getGame().getCardsIn(ZoneType.Battlefield)) {
+            if ("The Abyss".equals(c.getName())) {
+                return true;
+            }
+            for (Trigger t : c.getTriggers()) {
+                if (t.getMode() != TriggerType.Phase) {
+                    continue;
+                }
+                if (!"Upkeep".equals(t.getParam("Phase"))) {
+                    continue;
+                }
+                String execName = t.getParam("Execute");
+                if (execName == null) {
+                    continue;
+                }
+                String svar = c.getSVar(execName);
+                if (svar != null && svar.contains("DB$ Destroy")
+                        && svar.contains("Creature.nonArtifact")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean creatureHasProtectionFromBlack(final Card c) {
+        for (forge.game.keyword.KeywordInterface ki : c.getKeywords()) {
+            String kw = ki.getOriginal();
+            if (kw == null) {
+                continue;
+            }
+            if (kw.startsWith("Protection from black")
+                    || kw.equals("Protection from all colors")
+                    || kw.equals("Protection from monocolored")
+                    || kw.startsWith("Protection from each color")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Estimate the "self-harm" cost of putting a creature with a recurring upkeep

@@ -599,6 +599,59 @@ public class AiController {
             }
         }
 
+        // Look ahead: pick a land that produces a color needed for the
+        // cheapest spell in hand we'll likely want to cast soon (e.g. drop
+        // an Island turn 1 to be able to cast Counterspell turn 2).
+        {
+            int targetLands = player.getLandsInPlay().size() + 1;
+            CardCollection upcoming = CardLists.filter(nonLandsInHand, new Predicate<Card>() {
+                @Override
+                public boolean apply(Card c) {
+                    int cmc = c.getCMC();
+                    return cmc > 0 && cmc <= targetLands + 1;
+                }
+            });
+            CardLists.sortByCmcDesc(upcoming);
+            java.util.Collections.reverse(upcoming); // cheapest first
+            for (Card spell : upcoming) {
+                forge.card.ColorSet colorSet = spell.getManaCost().getColorProfile() == 0
+                        ? null : forge.card.ColorSet.fromMask(spell.getManaCost().getColorProfile());
+                if (colorSet == null) {
+                    continue;
+                }
+                for (int i = 0; i < MagicColor.WUBRG.length; i++) {
+                    byte color = MagicColor.WUBRG[i];
+                    if ((colorSet.getColor() & color) == 0) {
+                        continue;
+                    }
+                    // Skip color if we already produce it.
+                    boolean alreadyProduced = false;
+                    for (Card l : player.getLandsInPlay()) {
+                        for (SpellAbility m : ComputerUtilMana.getAIPlayableMana(l)) {
+                            if (m.canProduce(MagicColor.toShortString(color))) {
+                                alreadyProduced = true;
+                                break;
+                            }
+                        }
+                        if (alreadyProduced) break;
+                    }
+                    if (alreadyProduced) {
+                        continue;
+                    }
+                    for (Card land : landList) {
+                        if (land.getType().hasSubtype(MagicColor.Constant.BASIC_LANDS.get(i))) {
+                            return land;
+                        }
+                        for (SpellAbility m : ComputerUtilMana.getAIPlayableMana(land)) {
+                            if (m.canProduce(MagicColor.toShortString(color))) {
+                                return land;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         //play lands with a basic type that is needed the most
         final CardCollectionView landsInBattlefield = player.getCardsIn(ZoneType.Battlefield);
         final List<String> basics = Lists.newArrayList();

@@ -178,23 +178,32 @@ public class DamageDealAi extends DamageAiBase {
             dmg = Aggregates.sum(wolves, CardPredicates.Accessors.fnGetNetPower);
         } else if ("Triskelion".equals(logic)) {
             final int n = source.getCounters(CounterEnumType.P1P1);
-            if (n > 0) {
-                if (ComputerUtil.playImmediately(ai, sa)) {
-                    /*
-                     * Mostly used to ping the player with remaining counters. The issue with
-                     * stacked effects might appear here.
-                     */
-                    return damageTargetAI(ai, sa, n, true);
-                } else {
-                    /*
-                     * Only ping when stack is clear to avoid hassle of evaluating stacked effects
-                     * like protection/pumps or over-killing target.
-                     */
-                    return ai.getGame().getStack().isEmpty() && damageTargetAI(ai, sa, n, false);
-                }
-            } else {
+            if (n <= 0) {
                 return false;
             }
+            // Triskelion is "about to die" if predictThreatenedObjects /
+            // combat detection say so. Only then are we allowed to dump
+            // remaining counters into the opponent's face for less than
+            // lethal damage; otherwise prefer to keep counters around to
+            // kill creatures.
+            boolean triskAboutToDie = ComputerUtil.playImmediately(ai, sa);
+            boolean immediate = triskAboutToDie;
+            if (!immediate && !ai.getGame().getStack().isEmpty()) {
+                // wait until stack is clear before pinging creatures
+                return false;
+            }
+            if (!damageTargetAI(ai, sa, n, immediate)) {
+                return false;
+            }
+            // If we ended up targeting a player, only allow it when the
+            // damage is lethal or Triskelion is about to be removed.
+            Player tgtPlayer = sa.getTargets().getFirstTargetedPlayer();
+            if (tgtPlayer != null && !triskAboutToDie) {
+                if (n < tgtPlayer.getLife()) {
+                    return false;
+                }
+            }
+            return true;
         } else if ("NinThePainArtist".equals(logic)) {
             // Make sure not to mana lock ourselves + make the opponent draw cards into an immediate discard
             if (ai.getGame().getPhaseHandler().is(PhaseType.END_OF_TURN)) {

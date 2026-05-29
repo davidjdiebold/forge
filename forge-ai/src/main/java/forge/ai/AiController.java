@@ -2146,8 +2146,24 @@ public class AiController {
         if (viable == null || viable.isEmpty()) {
             return null;
         }
+        // Filter out targets that aren't actually a threat right now —
+        // e.g. Black Vise only deals damage when the opposing player has
+        // more than 4 cards in hand. Don't waste Chaos Orb on it if our
+        // own hand has 4 or fewer cards.
+        CardCollection filtered = CardLists.filter(viable, new Predicate<Card>() {
+            @Override
+            public boolean apply(Card c) {
+                if ("Black Vise".equalsIgnoreCase(c.getName())) {
+                    return activator.getCardsIn(ZoneType.Hand).size() > 4;
+                }
+                return true;
+            }
+        });
+        if (filtered.isEmpty()) {
+            filtered = new CardCollection(viable); // fall back to original
+        }
         // Non-land permanents are always preferred targets.
-        CardCollection nonLand = CardLists.filter(viable, Predicates.not(CardPredicates.Presets.LANDS));
+        CardCollection nonLand = CardLists.filter(filtered, Predicates.not(CardPredicates.Presets.LANDS));
         if (!nonLand.isEmpty()) {
             return ComputerUtilCard.getBestAI(nonLand);
         }

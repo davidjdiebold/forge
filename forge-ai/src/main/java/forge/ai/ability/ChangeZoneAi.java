@@ -1180,6 +1180,34 @@ public class ChangeZoneAi extends SpellAbilityAi {
         // the Unless cost (for example, Erratic Portal)
         list.removeAll(getSafeTargetsIfUnlessCostPaid(ai, sa, list));
 
+        // Don't waste Swords-to-Plowshares-style exile + life-gain removal
+        // on opposing mana producers (Birds of Paradise, Llanowar Elves)
+        // unless the opponent is actually starving for mana. We'd just be
+        // gifting them life and a card we picked, with little real value.
+        if (destination.equals(ZoneType.Exile)
+                && origin.contains(ZoneType.Battlefield)
+                && grantsLifeToTargetController(sa)) {
+            CardCollection withoutManaDorks = CardLists.filter(list, new Predicate<Card>() {
+                @Override
+                public boolean apply(final Card c) {
+                    if (!isManaProducerCreature(c)) {
+                        return true;
+                    }
+                    Player owner = c.getController();
+                    if (owner == null) {
+                        return true;
+                    }
+                    int oppManaSources = countManaSources(owner);
+                    // keep mana dorks as a valid target only when opp is
+                    // truly starving for mana.
+                    return oppManaSources <= 2;
+                }
+            });
+            if (!withoutManaDorks.isEmpty()) {
+                list = withoutManaDorks;
+            }
+        }
+
         if (!mandatory && list.size() < sa.getTargetRestrictions().getMinTargets(sa.getHostCard(), sa)) {
             return false;
         }
@@ -2465,5 +2493,62 @@ public class ChangeZoneAi extends SpellAbilityAi {
 
     private static boolean isBouncedThisTurn(Player ai, Card c) {
         return AiCardMemory.isRememberedCard(ai, c, AiCardMemory.MemorySet.BOUNCED_THIS_TURN);
+    }
+
+    /**
+     * Returns true if the given SA (or any of its sub-abilities) gains life
+     * for the controller of the targeted card — e.g. Swords to Plowshares
+     * or Path to Exile-style effects.
+     */
+    private static boolean grantsLifeToTargetController(final SpellAbility sa) {
+        SpellAbility cur = sa;
+        while (cur != null) {
+            if (cur.getApi() == ApiType.GainLife) {
+                String defined = cur.getParam("Defined");
+                if (defined != null
+                        && (defined.contains("Targeted") || defined.contains("RememberedController"))) {
+                    return true;
+                }
+            }
+            cur = cur.getSubAbility();
+        }
+        return false;
+    }
+
+    /**
+     * A creature whose main contribution is producing mana — e.g. Birds of
+     * Paradise, Llanowar Elves, Elvish Mystic.
+     */
+    private static boolean isManaProducerCreature(final Card c) {
+        if (c == null || !c.isCreature()) {
+            return false;
+        }
+        for (SpellAbility ab : c.getSpellAbilities()) {
+            if (ab.isManaAbility()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Counts permanents controlled by the given player that can produce
+     * mana: lands and creatures with a mana ability.
+     */
+    private static int countManaSources(final Player p) {
+        int n = 0;
+        for (Card c : p.getCardsIn(ZoneType.Battlefield)) {
+            if (c.isLand()) {
+                n++;
+                continue;
+            }
+            for (SpellAbility ab : c.getSpellAbilities()) {
+                if (ab.isManaAbility()) {
+                    n++;
+                    break;
+                }
+            }
+        }
+        return n;
     }
 }

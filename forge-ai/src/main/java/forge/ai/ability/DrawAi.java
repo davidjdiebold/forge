@@ -54,6 +54,12 @@ public class DrawAi extends SpellAbilityAi {
      */
     @Override
     protected boolean checkApiLogic(Player ai, SpellAbility sa) {
+        // Don't help the opponent draw cards if we can probably win
+        // by attacking this turn.
+        if (helpsOpponentDraw(ai, sa) && canProbablyWinByAttackingThisTurn(ai)) {
+            return false;
+        }
+
         if (!targetAI(ai, sa, false)) {
             return false;
         }
@@ -664,4 +670,75 @@ public class DrawAi extends SpellAbilityAi {
         // except it has Laboratory Maniac
         return player.isCardInPlay("Laboratory Maniac");
     }
+
+    /**
+     * Returns true if resolving this spell/ability will give cards to one of
+     * the AI's opponents (Defined Player/Each Player or an opponent target).
+     */
+    private static boolean helpsOpponentDraw(final Player ai, final SpellAbility sa) {
+        // explicit opponent target
+        if (sa.usesTargeting()) {
+            for (Player p : sa.getTargets().getTargetPlayers()) {
+                if (p.isOpponentOf(ai)) {
+                    return true;
+                }
+            }
+        }
+        // Defined that resolves to multiple players, or to an opponent.
+        // Look at the root SA and any sub-abilities of type Draw.
+        SpellAbility current = sa;
+        while (current != null) {
+            if (current.getApi() == ApiType.Draw) {
+                String defined = current.getParam("Defined");
+                if (defined == null) {
+                    // when no Defined is set, default is You — fine
+                } else if (defined.equals("Player") || defined.equals("Each")
+                        || defined.contains("Opponent") || defined.contains("Each")) {
+                    return true;
+                }
+            }
+            current = current.getSubAbility();
+        }
+        return false;
+    }
+
+    /**
+     * Crude estimate: does the AI have enough untapped, sickness-free
+     * attackers to deal lethal to its weakest opponent this turn (assuming
+     * no blocks). Intended as a guard against making opponents draw cards
+     * (Wheel of Fortune, Timetwister, ...) when finishing them off is the
+     * better line.
+     */
+    private static boolean canProbablyWinByAttackingThisTurn(final Player ai) {
+        int totalPower = 0;
+        for (Card c : ai.getCreaturesInPlay()) {
+            if (c.isTapped() || c.hasSickness()) {
+                continue;
+            }
+            int p = c.getNetPower();
+            if (p > 0) {
+                totalPower += p;
+            }
+        }
+        if (totalPower <= 0) {
+            return false;
+        }
+        for (Player opp : ai.getOpponents()) {
+            int needed = opp.getLife();
+            // account for any unblockable trick we have to subtract from
+            // available blockers — keep it conservative: assume opp can
+            // block with everything except 0-power creatures.
+            int oppBlockers = 0;
+            for (Card c : opp.getCreaturesInPlay()) {
+                if (!c.isTapped()) {
+                    oppBlockers += Math.max(1, c.getNetToughness());
+                }
+            }
+            if (totalPower < needed + oppBlockers) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 }

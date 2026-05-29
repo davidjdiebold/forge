@@ -1180,6 +1180,23 @@ public class ChangeZoneAi extends SpellAbilityAi {
         // the Unless cost (for example, Erratic Portal)
         list.removeAll(getSafeTargetsIfUnlessCostPaid(ai, sa, list));
 
+        // Never give our own controlled creatures to an opp via a
+        // Swords-to-Plowshares-style spell that gains life for the target's
+        // controller — e.g. don't exile a creature we reanimated from an
+        // opponent's graveyard (controlled by us, owned by opp) just to
+        // hand them a card and life.
+        if (destination.equals(ZoneType.Exile)
+                && origin.contains(ZoneType.Battlefield)
+                && grantsLifeToTargetController(sa)) {
+            list = CardLists.filter(list, new Predicate<Card>() {
+                @Override
+                public boolean apply(final Card c) {
+                    Player ctrl = c.getController();
+                    return ctrl == null || !ctrl.equals(ai);
+                }
+            });
+        }
+
         // Don't waste Swords-to-Plowshares-style exile + life-gain removal
         // on opposing mana producers (Birds of Paradise, Llanowar Elves)
         // unless the opponent is actually starving for mana. We'd just be

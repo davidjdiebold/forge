@@ -1779,6 +1779,17 @@ public class ChangeZoneAi extends SpellAbilityAi {
                     c = basicManaFixing(decider, fetchList);
                 }
             }
+            // Before any deck-archetype-specific tutor preference (e.g.
+            // reanimator going straight for Animate Dead), check for a
+            // top-tier "power" spell like Ancestral Recall — these are
+            // almost always a strictly better grab than a setup/utility
+            // card such as Animate Dead.
+            if (c == null) {
+                Card powerBomb = pickPowerSpellFromTutor(decider, fetchList);
+                if (powerBomb != null) {
+                    c = powerBomb;
+                }
+            }
             // Reanimator-aware tutor logic: prioritize finding the missing piece
             if (c == null && ComputerUtil.isPlayingReanimator(decider)) {
                 CardCollection nonLands = CardLists.getNotType(fetchList, "Land");

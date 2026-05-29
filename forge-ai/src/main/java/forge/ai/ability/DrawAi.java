@@ -60,6 +60,12 @@ public class DrawAi extends SpellAbilityAi {
             return false;
         }
 
+        // Avoid draw effects that would put us in lethal range from an
+        // opponent's "Underworld Dreams"-style draw punisher.
+        if (drawWouldHurtUsBadly(ai, sa)) {
+            return false;
+        }
+
         if (!targetAI(ai, sa, false)) {
             return false;
         }
@@ -739,6 +745,45 @@ public class DrawAi extends SpellAbilityAi {
             }
         }
         return true;
+    }
+
+    /**
+     * Returns true if drawing cards from this SA would put the AI in lethal
+     * range from an opponent's "Underworld Dreams"-style trigger (1 damage
+     * per drawn card).
+     */
+    private static boolean drawWouldHurtUsBadly(final Player ai, final SpellAbility sa) {
+        int dmgPerCard = 0;
+        for (Player opp : ai.getOpponents()) {
+            for (Card c : opp.getCardsIn(ZoneType.Battlefield)) {
+                if ("Underworld Dreams".equalsIgnoreCase(c.getName())) {
+                    dmgPerCard += 1;
+                }
+            }
+        }
+        if (dmgPerCard <= 0) {
+            return false;
+        }
+        int numCards = 1;
+        if (sa.hasParam("NumCards")) {
+            try {
+                numCards = AbilityUtils.calculateAmount(sa.getHostCard(), sa.getParam("NumCards"), sa);
+            } catch (Exception ignored) {
+            }
+        }
+        SpellAbility sub = sa.getSubAbility();
+        while (sub != null) {
+            if (sub.getApi() == ApiType.Draw && sub.hasParam("NumCards")) {
+                try {
+                    numCards = Math.max(numCards, AbilityUtils.calculateAmount(sub.getHostCard(), sub.getParam("NumCards"), sub));
+                } catch (Exception ignored) {
+                }
+            }
+            sub = sub.getSubAbility();
+        }
+        int expectedDamage = numCards * dmgPerCard;
+        // Refuse if the draw would put us at 3 or fewer life.
+        return expectedDamage > 0 && (ai.getLife() - expectedDamage) <= 3;
     }
 
 }

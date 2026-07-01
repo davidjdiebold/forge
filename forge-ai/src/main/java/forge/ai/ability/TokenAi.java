@@ -25,8 +25,10 @@ import forge.game.card.CardCollection;
 import forge.game.card.CardLists;
 import forge.game.card.CardPredicates;
 import forge.game.card.CardUtil;
+import forge.game.card.CounterEnumType;
 import forge.game.card.token.TokenInfo;
 import forge.game.combat.Combat;
+import forge.game.combat.CombatUtil;
 import forge.game.cost.CostPart;
 import forge.game.cost.CostPutCounter;
 import forge.game.cost.CostRemoveCounter;
@@ -96,11 +98,16 @@ public class TokenAi extends SpellAbilityAi {
             int x = AbilityUtils.calculateAmount(sa.getHostCard(), tokenAmount, sa);
             if (source.getSVar("X").equals("Count$Converge")) {
                 x = ComputerUtilMana.getConvergeCount(sa, ai);
+            } else if ("TetravusSplit".equals(sa.getParam("AILogic"))) {
+                x = chooseTetravusSplitAmount(ai, source);
+                sa.setXManaCostPaid(x);
             }
             if (sa.getSVar("X").equals("Count$xPaid")) {
                 // Set PayX here to maximum value.
-                x = ComputerUtilCost.getMaxXValue(sa, ai, sa.isTrigger());
-                sa.getRootAbility().setXManaCostPaid(x);
+                if (!"TetravusSplit".equals(sa.getParam("AILogic"))) {
+                    x = ComputerUtilCost.getMaxXValue(sa, ai, sa.isTrigger());
+                    sa.getRootAbility().setXManaCostPaid(x);
+                }
             }
             if (x <= 0) {
                 if ("RandomPT".equals(sa.getParam("AILogic"))) {
@@ -289,7 +296,10 @@ public class TokenAi extends SpellAbilityAi {
 
         if ("X".equals(tokenAmount) || "X".equals(tokenPower) || "X".equals(tokenToughness)) {
             int x = AbilityUtils.calculateAmount(source, tokenAmount, sa);
-            if (sa.getSVar("X").equals("Count$xPaid")) {
+            if ("TetravusSplit".equals(sa.getParam("AILogic"))) {
+                x = chooseTetravusSplitAmount(ai, source);
+                sa.setXManaCostPaid(x);
+            } else if (sa.getSVar("X").equals("Count$xPaid")) {
                 if (x == 0) { // already paid outside trigger
                     // Set PayX here to maximum value.
                     x = ComputerUtilCost.getMaxXValue(sa, ai, true);
@@ -314,6 +324,39 @@ public class TokenAi extends SpellAbilityAi {
         }
 
         return true;
+    }
+
+    static int chooseTetravusSplitAmount(final Player ai, final Card tetravus) {
+        final int counters = tetravus.getCounters(CounterEnumType.P1P1);
+        if (counters <= 0 || shouldKeepTetravusAsBlocker(ai, tetravus)) {
+            return 0;
+        }
+        return counters;
+    }
+
+    private static boolean shouldKeepTetravusAsBlocker(final Player ai, final Card tetravus) {
+        final int tetravusPower = tetravus.getNetPower();
+        final int tetravusToughness = tetravus.getNetToughness();
+        final int tetravusValue = ComputerUtilCard.evaluateCreature(tetravus);
+
+        for (Card threat : ai.getOpponents().getCreaturesInPlay()) {
+            if (!CombatUtil.canBlock(threat, tetravus, true)) {
+                continue;
+            }
+
+            final boolean isLargeThreat = threat.getNetPower() >= Math.max(4, tetravusToughness - 1)
+                    || ComputerUtilCard.evaluateCreature(threat) >= tetravusValue;
+            if (!isLargeThreat) {
+                continue;
+            }
+
+            final boolean canTrade = tetravusPower >= ComputerUtilCombat.getDamageToKill(threat, false);
+            final boolean mustAbsorbDamage = threat.getNetPower() >= Math.max(4, ai.getLife() / 2);
+            if (canTrade || mustAbsorbDamage) {
+                return true;
+            }
+        }
+        return false;
     }
     /* (non-Javadoc)
      * @see forge.card.ability.SpellAbilityAi#confirmAction(forge.game.player.Player, forge.card.spellability.SpellAbility, forge.game.player.PlayerActionConfirmMode, java.lang.String)

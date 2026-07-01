@@ -5,11 +5,13 @@ import java.util.Map;
 
 import forge.ai.ComputerUtilCard;
 import forge.ai.ComputerUtilCost;
+import forge.ai.ComputerUtilMana;
 import forge.ai.SpellAbilityAi;
 import forge.game.Game;
 import forge.game.ability.AbilityUtils;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
+import forge.game.card.CardCollectionView;
 import forge.game.card.CardLists;
 import forge.game.card.CardPredicates;
 import forge.game.keyword.Keyword;
@@ -169,60 +171,179 @@ public class SacrificeAi extends SpellAbilityAi {
         return true;
     }
 
-    /**
-     * Transmute Artifact: only cast when there's a worthwhile upgrade in the
-     * library AND the AI can afford to pay the X difference if needed.
-     * Otherwise the searched-for artifact ends up in the graveyard.
-     */
     private static boolean considerTransmuteArtifact(final Player ai, final SpellAbility sa) {
-        // Find artifacts we can sacrifice (excluding the spell itself which is on the stack).
         CardCollection ownArtifacts = CardLists.filter(ai.getCardsIn(ZoneType.Battlefield),
                 CardPredicates.Presets.ARTIFACTS);
         ownArtifacts = CardLists.filter(ownArtifacts, CardPredicates.canBeSacrificedBy(sa, false));
-        if (ownArtifacts.isEmpty()) {
-            return false;
+
+        return chooseTransmuteArtifactSacrifice(ai, sa, ownArtifacts) != null;
+    }
+
+    public static Card chooseTransmuteArtifactSacrifice(final Player ai, final SpellAbility sa, final CardCollectionView choices) {
+        if (choices == null || choices.isEmpty()) {
+            return null;
         }
 
-        // Determine the cheapest artifact we would sacrifice (lowest CMC = least loss).
-        Card sacCandidate = null;
-        int minCMC = Integer.MAX_VALUE;
-        for (Card c : ownArtifacts) {
-            if (c.getCMC() < minCMC) {
-                minCMC = c.getCMC();
-                sacCandidate = c;
-            }
-        }
-        if (sacCandidate == null) {
-            return false;
-        }
-        int sacCMC = sacCandidate.getCMC();
+        Card bestSacrifice = null;
+        Card bestTarget = null;
+        int bestNetScore = 0;
+        final int leftover = getTransmuteLeftoverMana(ai);
 
-        // Find candidate artifacts in our library.
-        CardCollection libArtifacts = CardLists.filter(ai.getCardsIn(ZoneType.Library),
-                CardPredicates.Presets.ARTIFACTS);
-        if (libArtifacts.isEmpty()) {
-            return false;
-        }
-
-        // Available mana after paying the UU cost of Transmute Artifact itself.
-        int totalManaSources = forge.ai.ComputerUtilMana.getAvailableManaSources(ai, true).size();
-        // Subtract this spell's own cost (UU = 2). If we're being evaluated, the
-        // spell isn't yet committed, so this approximates leftover mana.
-        int leftover = Math.max(0, totalManaSources - 2);
-
-        // Look for a useful upgrade we can actually fetch:
-        // libCMC <= sacCMC + leftover (so X can be paid if needed)
-        // AND the new artifact must be a real upgrade (strictly higher CMC).
-        for (Card lib : libArtifacts) {
-            int libCMC = lib.getCMC();
-            if (libCMC > sacCMC + leftover) {
+        for (Card sacrifice : choices) {
+            final Card target = chooseTransmuteArtifactTarget(ai, sa, ai.getCardsIn(ZoneType.Library), sacrifice.getCMC(), leftover);
+            if (target == null) {
                 continue;
             }
-            if (libCMC > sacCMC) {
+
+            final int netScore = scoreTransmuteArtifactTarget(ai, target, sacrifice.getCMC()) - scoreTransmuteSacrifice(sacrifice);
+            if (netScore <= 0) {
+                continue;
+            }
+            if (bestSacrifice == null || netScore > bestNetScore
+                    || (netScore == bestNetScore && sacrifice.getCMC() < bestSacrifice.getCMC())) {
+                bestSacrifice = sacrifice;
+                bestTarget = target;
+                bestNetScore = netScore;
+            }
+        }
+
+        return bestTarget == null ? null : bestSacrifice;
+    }
+
+    public static Card chooseTransmuteArtifactTarget(final Player ai, final SpellAbility sa, final CardCollectionView fetchList) {
+        int sackedCMC = 0;
+        if (sa.getHostCard().hasSVar("SackedCMC")) {
+            sackedCMC = AbilityUtils.calculateAmount(sa.getHostCard(), sa.getHostCard().getSVar("SackedCMC"), sa);
+        }
+        return chooseTransmuteArtifactTarget(ai, sa, fetchList, sackedCMC, getTransmuteLeftoverMana(ai));
+    }
+
+    private static Card chooseTransmuteArtifactTarget(final Player ai, final SpellAbility sa, final CardCollectionView fetchList,
+            final int sackedCMC, final int leftover) {
+        if (fetchList == null || fetchList.isEmpty()) {
+            return null;
+        }
+
+        Card best = null;
+        int bestScore = 0;
+        for (Card artifact : fetchList) {
+            if (!artifact.isArtifact() || artifact.getCMC() > sackedCMC + leftover) {
+                continue;
+            }
+
+            final int score = scoreTransmuteArtifactTarget(ai, artifact, sackedCMC);
+            if (score > bestScore) {
+                best = artifact;
+                bestScore = score;
+            }
+        }
+        return best;
+    }
+
+    private static int getTransmuteLeftoverMana(final Player ai) {
+        return Math.max(0, ComputerUtilMana.getAvailableManaSources(ai, true).size() - 2);
+    }
+
+    private static int scoreTransmuteArtifactTarget(final Player ai, final Card artifact, final int sackedCMC) {
+        final String name = artifact.getName();
+        if ("Chaos Orb".equals(name)) {
+            return 900;
+        }
+
+        if (isBadTransmuteManaTarget(name)) {
+            return 0;
+        }
+
+        if (isReusableManaArtifact(artifact)) {
+            // Transmute should ramp only toward a real spell in hand, and not into
+            // one-shot or awkward sources like Black Lotus or Mana Vault.
+            if (!hasThreatToRampInto(ai)) {
+                return 0;
+            }
+            final int currentBestMana = getBestReusableManaArtifactScore(ai);
+            final int targetMana = scoreReusableManaArtifact(artifact);
+            if (targetMana <= currentBestMana) {
+                return 0;
+            }
+            return 500 + targetMana;
+        }
+
+        final int cmc = artifact.getCMC();
+        if (cmc >= 5) {
+            return 700 + ComputerUtilCard.evaluatePermanentList(new CardCollection(artifact)) * 20 + cmc * 30;
+        }
+
+        return 0;
+    }
+
+    private static int scoreTransmuteSacrifice(final Card artifact) {
+        if (artifact.hasSVar("SacMe")) {
+            return Math.max(0, 80 - Integer.parseInt(artifact.getSVar("SacMe")) * 10);
+        }
+        if (isReusableManaArtifact(artifact)) {
+            return 500 + scoreReusableManaArtifact(artifact);
+        }
+        if (!artifact.getTriggers().isEmpty() || !artifact.getStaticAbilities().isEmpty()
+                || !artifact.getReplacementEffects().isEmpty()) {
+            return 250 + artifact.getCMC() * 20;
+        }
+        for (SpellAbility ab : artifact.getSpellAbilities()) {
+            if (ab.isActivatedAbility() && ab.getApi() != null) {
+                return 220 + artifact.getCMC() * 20;
+            }
+        }
+        return 100 + artifact.getCMC() * 15;
+    }
+
+    private static boolean hasThreatToRampInto(final Player ai) {
+        final int available = ComputerUtilMana.getAvailableManaSources(ai, true).size();
+        for (Card handCard : ai.getCardsIn(ZoneType.Hand)) {
+            if (handCard.isLand() || handCard.getCMC() < 4) {
+                continue;
+            }
+            SpellAbility first = handCard.getFirstSpellAbility();
+            if (first == null) {
+                continue;
+            }
+            first.setActivatingPlayer(ai, true);
+            if (!ComputerUtilMana.hasEnoughManaSourcesToCast(first, ai) && handCard.getCMC() <= available + 2) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static int getBestReusableManaArtifactScore(final Player ai) {
+        int best = 0;
+        for (Card permanent : ai.getCardsIn(ZoneType.Battlefield)) {
+            if (permanent.isArtifact() && isReusableManaArtifact(permanent)) {
+                best = Math.max(best, scoreReusableManaArtifact(permanent));
+            }
+        }
+        return best;
+    }
+
+    private static boolean isReusableManaArtifact(final Card artifact) {
+        return scoreReusableManaArtifact(artifact) > 0;
+    }
+
+    private static int scoreReusableManaArtifact(final Card artifact) {
+        switch (artifact.getName()) {
+            case "Sol Ring":
+                return 300;
+            case "Mox Sapphire":
+            case "Mox Jet":
+            case "Mox Ruby":
+            case "Mox Pearl":
+            case "Mox Emerald":
+                return 170;
+            default:
+                return 0;
+        }
+    }
+
+    private static boolean isBadTransmuteManaTarget(final String name) {
+        return "Black Lotus".equals(name) || "Lotus Petal".equals(name) || "Mana Vault".equals(name);
     }
 
     public static boolean doSacOneEachLogic(Player ai, SpellAbility sa) {

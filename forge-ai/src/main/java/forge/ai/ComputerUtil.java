@@ -31,6 +31,7 @@ import com.google.common.collect.Multimap;
 
 import forge.ai.AiCardMemory.MemorySet;
 import forge.ai.ability.ProtectAi;
+import forge.ai.ability.SacrificeAi;
 import forge.ai.ability.TokenAi;
 import forge.card.CardStateName;
 import forge.card.CardType;
@@ -709,6 +710,11 @@ public class ComputerUtil {
 
         if (typeList.size() < amount) {
             return null;
+        }
+
+        if (amount == 1 && "TransmuteArtifact".equals(ability.getParamOrDefault("AILogic", ""))) {
+            final Card transmuteSacrifice = SacrificeAi.chooseTransmuteArtifactSacrifice(ai, ability, typeList);
+            return transmuteSacrifice == null ? null : new CardCollection(transmuteSacrifice);
         }
 
         final CardCollection sacList = new CardCollection();

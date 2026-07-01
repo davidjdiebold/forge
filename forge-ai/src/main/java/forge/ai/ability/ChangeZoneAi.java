@@ -1698,6 +1698,11 @@ public class ChangeZoneAi extends SpellAbilityAi {
         if (fetchList.isEmpty()) {
             return null;
         }
+        if ("Transmute Artifact".equals(ComputerUtilAbility.getAbilitySourceName(sa))
+                && origin.contains(ZoneType.Library)
+                && ZoneType.Library.equals(destination)) {
+            return SacrificeAi.chooseTransmuteArtifactTarget(decider, sa, fetchList);
+        }
         String type = sa.getParam("ChangeType");
         if (type == null) {
             type = "Card";

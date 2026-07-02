@@ -230,13 +230,20 @@ public class PermanentCreatureAi extends PermanentAi {
          * worth it. Not sure what 4. is for. 5. needs to be updated to ensure
          * that the net toughness is still positive after static effects.
          */
+        final Card copy = CardUtil.getLKICopy(card);
+        // Defer vulnerable non-artifact creatures under The Abyss before
+        // allowing ETB-value creatures. If we already have an artifact creature
+        // in play, adding a nonartifact body just feeds the next upkeep trigger.
+        if (shouldDeferUnderAbyss(ai, sa, copy)) {
+            return false;
+        }
+
         // AiPlayDecision.WouldBecomeZeroToughnessCreature
         if (card.hasStartOfKeyword("etbCounter") || mana.countX() != 0
                 || card.hasETBTrigger(false) || card.hasETBReplacement() || card.hasSVar("NoZeroToughnessAI")) {
                 return true;
         }
 
-        final Card copy = CardUtil.getLKICopy(card);
         ComputerUtilCard.applyStaticContPT(game, copy, null);
         if (copy.getNetToughness() > 0) {
             // Defer casting this creature if an opposing permanent can already
@@ -250,12 +257,6 @@ public class PermanentCreatureAi extends PermanentAi {
             // unless the creature provides meaningful value on entry / cannot
             // realistically be held.
             if (shouldDeferDueToOpposingPingers(ai, sa, copy)) {
-                return false;
-            }
-            // Defer non-artifact creatures while The Abyss is in play unless we
-            // can swarm (deploy multiple this turn) so the recurring kill is
-            // amortized. Otherwise we just feed the trigger one creature per turn.
-            if (shouldDeferUnderAbyss(ai, sa, copy)) {
                 return false;
             }
             return true;
@@ -289,6 +290,9 @@ public class PermanentCreatureAi extends PermanentAi {
         if (!abyssInPlay) {
             return false;
         }
+        if (hasAbyssSafeCreatureInPlay(ai)) {
+            return true;
+        }
         // Count non-artifact / non-PfB creatures we could chain this turn so
         // the loss is amortized (The Abyss kills only one nonartifact creature
         // per upkeep). If we can't swarm, casting one is just feeding it.
@@ -313,6 +317,15 @@ public class PermanentCreatureAi extends PermanentAi {
         // No swarm available -> casting this single non-art creature will just
         // be sacrificed on opponent's next upkeep. Hold it.
         return otherDeployableThisTurn == 0;
+    }
+
+    private static boolean hasAbyssSafeCreatureInPlay(final Player ai) {
+        for (Card c : ai.getCreaturesInPlay()) {
+            if (c.isArtifact() || hasProtectionFromBlack(c)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean hasProtectionFromBlack(final Card c) {

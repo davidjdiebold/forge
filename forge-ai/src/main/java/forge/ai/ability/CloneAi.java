@@ -6,6 +6,7 @@ import java.util.Map;
 import com.google.common.base.Predicates;
 
 import forge.ai.ComputerUtilCard;
+import forge.ai.ComputerUtilMana;
 import forge.ai.SpellAbilityAi;
 import forge.game.Game;
 import forge.game.ability.AbilityUtils;
@@ -215,15 +216,15 @@ public class CloneAi extends SpellAbilityAi {
         }
 
         // When the AI is going to control the clone, prefer artifacts that
-        // strictly help us (mana acceleration, Sol Ring, etc.) over symmetric
-        // punisher artifacts like Ankh of Mishra that would also hurt the AI.
-        // Without this, getMostExpensivePermanentAI just returns the highest
-        // CMC permanent and Copy Artifact ends up cloning the opponent's
-        // Ankh of Mishra instead of their Sol Ring or Mox.
+        // strictly help us and avoid symmetric punisher artifacts like Ankh of
+        // Mishra that would also hurt the AI.
         if (!isOpp) {
-            Card preferred = pickBestArtifactForSelf(options, ai);
+            Card preferred = pickBestArtifactForSelf(options, ai, "Copy Artifact".equals(name));
             if (preferred != null) {
                 return preferred;
+            }
+            if ("Copy Artifact".equals(name)) {
+                return null;
             }
         }
 
@@ -238,7 +239,29 @@ public class CloneAi extends SpellAbilityAi {
      * actively avoids symmetric punisher artifacts that would hurt the AI
      * just as much as they would hurt the opponent.
      */
-    private static Card pickBestArtifactForSelf(final Iterable<Card> options, final Player ai) {
+    private static Card pickBestArtifactForSelf(final Iterable<Card> options, final Player ai, final boolean isCopyArtifact) {
+        java.util.List<Card> filtered = CardLists.filter(options, new com.google.common.base.Predicate<Card>() {
+            @Override
+            public boolean apply(Card c) {
+                return !isSymmetricPunisherArtifact(c);
+            }
+        });
+
+        if (isCopyArtifact && !filtered.isEmpty()) {
+            CardCollection nonManaArtifacts = CardLists.filter(filtered, new com.google.common.base.Predicate<Card>() {
+                @Override
+                public boolean apply(Card c) {
+                    return !isPureManaArtifact(c);
+                }
+            });
+            if (!nonManaArtifacts.isEmpty()) {
+                return ComputerUtilCard.getBestAI(nonManaArtifacts);
+            }
+            if (!shouldCopyManaSourceWithCopyArtifact(ai)) {
+                return null;
+            }
+        }
+
         // Tier-ordered preference list — highest tier first.
         final String[][] tiers = new String[][] {
                 { "Black Lotus" },
@@ -248,7 +271,7 @@ public class CloneAi extends SpellAbilityAi {
                 { "Skullclamp", "Sensei's Divining Top", "Winter Orb", "Howling Mine" },
         };
         for (String[] tier : tiers) {
-            for (Card opt : options) {
+            for (Card opt : filtered) {
                 for (String name : tier) {
                     if (name.equals(opt.getName())) {
                         return opt;
@@ -256,19 +279,35 @@ public class CloneAi extends SpellAbilityAi {
                 }
             }
         }
-        // Filter out symmetric punisher artifacts that hurt both players.
-        // If everything in the option list is symmetric-punisher, fall back
-        // to the default best-AI selection instead of forcing a bad pick.
-        java.util.List<Card> filtered = CardLists.filter(options, new com.google.common.base.Predicate<Card>() {
-            @Override
-            public boolean apply(Card c) {
-                return !isSymmetricPunisherArtifact(c);
-            }
-        });
         if (!filtered.isEmpty()) {
             return ComputerUtilCard.getBestAI(filtered);
         }
         return null;
+    }
+
+    private static boolean isPureManaArtifact(final Card c) {
+        return c.isArtifact() && !c.isCreature() && !ComputerUtilMana.getAIPlayableMana(c).isEmpty();
+    }
+
+    private static boolean shouldCopyManaSourceWithCopyArtifact(final Player ai) {
+        int manaSources = ComputerUtilMana.getAvailableManaSources(ai, true).size();
+        int spellCount = 0;
+        int totalCmc = 0;
+        for (Card c : ai.getCardsIn(ZoneType.Hand)) {
+            if (c.isLand() || "Copy Artifact".equals(c.getName())) {
+                continue;
+            }
+            int cmc = c.getCMC();
+            if (cmc <= 0) {
+                continue;
+            }
+            if (cmc > manaSources) {
+                return true;
+            }
+            spellCount++;
+            totalCmc += cmc;
+        }
+        return spellCount >= 3 && totalCmc > manaSources + 2;
     }
 
     private static boolean isSymmetricPunisherArtifact(final Card c) {

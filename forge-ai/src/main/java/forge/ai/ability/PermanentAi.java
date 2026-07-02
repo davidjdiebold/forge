@@ -319,7 +319,7 @@ public class PermanentAi extends SpellAbilityAi {
         if (arts.isEmpty()) {
             return false;
         }
-        int manaSources = ComputerUtilMana.getAvailableManaSources(ai, true).size();
+        boolean shouldCopyManaSource = shouldCopyManaSourceWithCopyArtifact(ai, sa.getHostCard());
         boolean foundValuable = false;
         for (Card a : arts) {
             String name = a.getName();
@@ -331,17 +331,40 @@ public class PermanentAi extends SpellAbilityAi {
                     || "The Rack".equalsIgnoreCase(name)) {
                 continue;
             }
-            // Mox-style 0-cost mana artifacts aren't worth a 2-mana copy
-            // when we already have enough mana sources.
-            boolean isMoxLike = name.startsWith("Mox ") || "Lotus Petal".equals(name)
-                    || "Chrome Mox".equals(name) || "Mox Diamond".equals(name);
-            if (isMoxLike && manaSources >= 6) {
+            // Keep Copy Artifact for a real threat/value piece when the only
+            // current targets are mana sources and the hand is not mana-hungry.
+            if (isPureManaArtifact(a) && !shouldCopyManaSource) {
                 continue;
             }
             foundValuable = true;
             break;
         }
         return foundValuable;
+    }
+
+    private static boolean isPureManaArtifact(final Card c) {
+        return c.isArtifact() && !c.isCreature() && !ComputerUtilMana.getAIPlayableMana(c).isEmpty();
+    }
+
+    private static boolean shouldCopyManaSourceWithCopyArtifact(final Player ai, final Card source) {
+        int manaSources = ComputerUtilMana.getAvailableManaSources(ai, true).size();
+        int spellCount = 0;
+        int totalCmc = 0;
+        for (Card c : ai.getCardsIn(ZoneType.Hand)) {
+            if (c == source || c.isLand() || "Copy Artifact".equals(c.getName())) {
+                continue;
+            }
+            int cmc = c.getCMC();
+            if (cmc <= 0) {
+                continue;
+            }
+            if (cmc > manaSources) {
+                return true;
+            }
+            spellCount++;
+            totalCmc += cmc;
+        }
+        return spellCount >= 3 && totalCmc > manaSources + 2;
     }
 
     private static boolean shouldDeferSlowBuildAroundForRemoval(final Player ai, final SpellAbility sa, final Card source) {

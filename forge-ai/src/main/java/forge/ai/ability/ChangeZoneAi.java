@@ -668,6 +668,42 @@ public class ChangeZoneAi extends SpellAbilityAi {
         return ComputerUtilCard.getBestCreatureAI(list);
     }
 
+    private static boolean hasCastableCreatureInHand(final Player ai) {
+        for (Card c : ai.getCardsIn(ZoneType.Hand)) {
+            SpellAbility spell = c.getFirstSpellAbility();
+            if (c.isCreature() && spell != null && ComputerUtilMana.hasEnoughManaSourcesToCast(spell, ai)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean opponentsHaveCreatures(final Player ai) {
+        return !ai.getOpponents().getCreaturesInPlay().isEmpty();
+    }
+
+    private static boolean isDefensiveAnswerCard(final Card c) {
+        for (SpellAbility spell : c.getSpellAbilities()) {
+            ApiType api = spell.getApi();
+            if (api == ApiType.Counter || api == ApiType.Destroy || api == ApiType.Fog
+                    || api == ApiType.PreventDamage || api == ApiType.PreventDamageAll
+                    || api == ApiType.Protection || api == ApiType.ProtectionAll
+                    || api == ApiType.Regenerate || api == ApiType.RegenerateAll) {
+                return true;
+            }
+            if (api == ApiType.Effect && "Fog".equals(spell.getParam("AILogic"))) {
+                return true;
+            }
+            if (api == ApiType.ChangeZone && spell.hasParam("Destination")) {
+                ZoneType destination = ZoneType.smartValueOf(spell.getParam("Destination"));
+                if (destination == ZoneType.Exile || destination == ZoneType.Hand || destination == ZoneType.Library) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     // *************************************************************************************
     // **************** Known Origin (Battlefield/Graveyard/Exile) *************************
     // ******* Known origin cards are chosen during casting of the spell (target) **********
@@ -1308,6 +1344,13 @@ public class ChangeZoneAi extends SpellAbilityAi {
                                }
                             }
                         } else {
+                            if (origin.contains(ZoneType.Graveyard) && destination.equals(ZoneType.Hand)
+                                    && !opponentsHaveCreatures(ai) && hasCastableCreatureInHand(ai)) {
+                                Card bestNonLand = ComputerUtilCard.getBestAI(nonLands);
+                                if (bestNonLand != null && isDefensiveAnswerCard(bestNonLand)) {
+                                    return false;
+                                }
+                            }
                             // Get the best card in there.
                             choice = ComputerUtilCard.getBestAI(nonLands);
                         }

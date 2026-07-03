@@ -71,6 +71,29 @@ public class SpellAbilityPickerSimulationTest extends SimulationTest {
     }
 
     @Test
+    public void testCreatureOverRegrowthForDefenseWithoutOpponentThreats() {
+        Game game = initAndCreateGame();
+        Player p = game.getPlayers().get(1);
+
+        addCards("Forest", 3, p);
+        Card creature = addCardToZone("Centaur Courser", p, ZoneType.Hand);
+        addCardToZone("Regrowth", p, ZoneType.Hand);
+        addCardToZone("Swords to Plowshares", p, ZoneType.Graveyard);
+
+        Player opponent = game.getPlayers().get(0);
+        opponent.setTeam(1);
+        p.setTeam(0);
+
+        game.getPhaseHandler().devModeSet(PhaseType.MAIN2, p);
+        game.getAction().checkStateEffects(true);
+
+        SpellAbilityPicker picker = new SpellAbilityPicker(game, p);
+        SpellAbility sa = picker.chooseSpellAbilityToPlay(null);
+        AssertJUnit.assertNotNull(sa);
+        AssertJUnit.assertEquals(creature, sa.getHostCard());
+    }
+
+    @Test
     public void testPreservingFlexibleBurnInNonBurnDeck() {
         Game game = initAndCreateGame();
         Player p = game.getPlayers().get(1);

@@ -1,5 +1,7 @@
 package forge.ai.simulation;
 
+import forge.ai.AiBlockController;
+import forge.ai.ComputerUtilCombat;
 import forge.game.spellability.LandAbility;
 
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import forge.game.Game;
 import forge.game.card.Card;
 import forge.game.card.CounterEnumType;
 import forge.game.combat.Combat;
+import forge.game.combat.CombatUtil;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.spellability.SpellAbility;
@@ -86,6 +89,38 @@ public class SpellAbilityPickerSimulationTest extends SimulationTest {
 
         SpellAbilityPicker picker = new SpellAbilityPicker(game, p);
         AssertJUnit.assertNull(picker.chooseSpellAbilityToPlay(null));
+    }
+
+    @Test
+    public void testDoubleBlocksUnderTwoTurnClockPressure() {
+        Game game = initAndCreateGame();
+        Player opponent = game.getPlayers().get(0);
+        Player ai = game.getPlayers().get(1);
+        opponent.setTeam(0);
+        ai.setTeam(1);
+        ai.setLife(16, null);
+
+        Card attacker1 = addCard("Erhnam Djinn", opponent);
+        Card attacker2 = addCard("Erhnam Djinn", opponent);
+        Card blocker1 = addCard("Triskelion", ai);
+        blocker1.setCounters(CounterEnumType.P1P1, 3);
+        Card blocker2 = addCard("Triskelion", ai);
+        blocker2.setCounters(CounterEnumType.P1P1, 3);
+
+        game.getPhaseHandler().devModeSet(PhaseType.COMBAT_DECLARE_BLOCKERS, opponent);
+        Combat combat = new Combat(opponent);
+        combat.addAttacker(attacker1, ai);
+        combat.addAttacker(attacker2, ai);
+        game.getPhaseHandler().setCombat(combat);
+        game.getAction().checkStateEffects(true);
+
+        AssertJUnit.assertTrue(CombatUtil.canBlock(attacker1, blocker1, combat));
+        AssertJUnit.assertEquals(8, ai.getLife() - ComputerUtilCombat.lifeThatWouldRemain(ai, combat));
+
+        new AiBlockController(ai, false).assignBlockersForCombat(combat);
+
+        AssertJUnit.assertEquals(2, combat.getBlockers(attacker1).size() + combat.getBlockers(attacker2).size());
+        AssertJUnit.assertTrue(combat.getBlockers(attacker1).size() == 2 || combat.getBlockers(attacker2).size() == 2);
     }
 
     @Test

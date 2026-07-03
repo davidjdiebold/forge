@@ -450,6 +450,7 @@ public class AiBlockController {
             int absorbedDamage; // The amount of damage needed to kill the first blocker
             int currentValue; // The value of the creatures in the blockgang
             boolean foundDoubleBlock = false; // if true, a good double block is found
+            final boolean twoTurnClockPressure = lifeUnderTwoTurnCombatClock(combat);
 
             // Try to add blockers that could be destroyed, but are worth less than the attacker
             // Don't use blockers without First Strike or Double Strike if attacker has it
@@ -460,7 +461,8 @@ public class AiBlockController {
                             && !ComputerUtilCombat.dealsFirstStrikeDamage(c, false, combat)) {
                         return false;
                     }
-                    return lifeInDanger || wouldLikeToRandomlyTrade(attacker, c, combat) || ComputerUtilCard.evaluateCreature(c) + diff < ComputerUtilCard.evaluateCreature(attacker);
+                    return lifeInDanger || twoTurnClockPressure || wouldLikeToRandomlyTrade(attacker, c, combat)
+                            || ComputerUtilCard.evaluateCreature(c) + diff < ComputerUtilCard.evaluateCreature(attacker);
                 }
             });
             if (usableBlockers.size() < 2) {
@@ -489,9 +491,9 @@ public class AiBlockController {
                         && (absorbedDamage2 + absorbedDamage > attacker.getNetCombatDamage()
                         // only one blocker can be killed
                         || currentValue + addedValue - 50 <= evalAttackerValue
-                        // or attacker is worth more
-                        || (lifeInDanger && ComputerUtilCombat.lifeInDanger(ai, combat)))
-                        // or life is in danger
+                        // or pressure is high enough to accept the material loss
+                        || lifeInDanger
+                        || twoTurnClockPressure)
                         && CombatUtil.canBlock(attacker, blocker, combat)) {
                     // this is needed for attackers that can't be blocked by more than 1
                     currentAttackers.remove(attacker);
@@ -564,6 +566,15 @@ public class AiBlockController {
         }
 
         attackersLeft = new ArrayList<>(currentAttackers);
+    }
+
+    private boolean lifeUnderTwoTurnCombatClock(final Combat combat) {
+        if (ai.cantLose() || ai.cantLoseForZeroOrLessLife()) {
+            return false;
+        }
+        int lifeAfterCombat = ComputerUtilCombat.lifeThatWouldRemain(ai, combat);
+        int combatDamage = ai.getLife() - lifeAfterCombat;
+        return lifeAfterCombat > 0 && combatDamage > 0 && combatDamage >= lifeAfterCombat;
     }
 
     private void makeGangNonLethalBlocks(final Combat combat) {

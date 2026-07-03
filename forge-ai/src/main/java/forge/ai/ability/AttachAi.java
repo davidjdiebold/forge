@@ -604,6 +604,7 @@ public class AttachAi extends SpellAbilityAi {
         // Abyss can't kill — artifact creatures and creatures with protection
         // from black. Otherwise reanimation is just a 1-for-1 sacrifice loss.
         final boolean abyssActive = isAbyssActiveAgainst(ai);
+        final boolean moatActive = hasOpponentMoatAgainst(ai);
 
         // Evaluate candidates AS IF reanimated and attached, so debuffs like Animate
         // Dead's "-1/-0" are factored into the comparison. The chosen creature
@@ -612,6 +613,9 @@ public class AttachAi extends SpellAbilityAi {
         int bestEval = Integer.MIN_VALUE;
         for (Card c : list) {
             if (abyssActive && !c.isArtifact() && !creatureHasProtectionFromBlack(c)) {
+                continue;
+            }
+            if (moatActive && !c.hasKeyword(Keyword.FLYING)) {
                 continue;
             }
             final Card lki = CardUtil.getLKICopy(c);
@@ -666,6 +670,22 @@ public class AttachAi extends SpellAbilityAi {
         }
 
         return best;
+    }
+
+    private static boolean hasOpponentMoatAgainst(final Player ai) {
+        for (Player opp : ai.getOpponents()) {
+            for (Card c : opp.getCardsIn(ZoneType.Battlefield)) {
+                for (StaticAbility stAb : c.getStaticAbilities()) {
+                    if (!stAb.checkConditions(StaticAbilityCantAttackBlock.CantAttackMode)) {
+                        continue;
+                    }
+                    if (stAb.hasParam("ValidCard") && stAb.getParam("ValidCard").contains("Creature.withoutFlying")) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     // True if any opponent (or AI itself) has an Abyss-like permanent active.

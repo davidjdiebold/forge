@@ -210,6 +210,13 @@ public class CounterAi extends SpellAbilityAi {
             }
         }
 
+        if (tgtSA != null) {
+            Card tgtSource = tgtSA.getHostCard();
+            if (tgtSource != null && "Ancestral Recall".equals(tgtSource.getName())) {
+                dontCounter = false;
+            }
+        }
+
         // Should ALWAYS counter if it doesn't spend a card, otherwise it wastes an opportunity
         // to gain card advantage
         if (sa.isAbility()
@@ -240,10 +247,12 @@ public class CounterAi extends SpellAbilityAi {
         if (tgtSA != null && tgtCMC <= 1 && sa.isSpell()) {
             int counterCmc = sa.getPayCosts() != null && sa.getPayCosts().getTotalMana() != null
                     ? sa.getPayCosts().getTotalMana().getCMC() : 0;
+            Card tgtSource = tgtSA.getHostCard();
+            boolean ancestralRecall = tgtSource != null && "Ancestral Recall".equals(tgtSource.getName());
             boolean critical = ai.getLife() <= 5
                     || ComputerUtilCombat.lifeInSeriousDanger(ai, game.getCombat())
                     || isImmediateThreatToAi(ai, tgtSA);
-            if (counterCmc > tgtCMC && !critical) {
+            if (counterCmc > tgtCMC && !critical && !ancestralRecall) {
                 return false;
             }
         }

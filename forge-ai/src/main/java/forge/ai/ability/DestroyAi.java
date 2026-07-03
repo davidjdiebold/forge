@@ -173,6 +173,16 @@ public class DestroyAi extends SpellAbilityAi {
             list = CardLists.getNotKeyword(list, Keyword.INDESTRUCTIBLE);
             if (CardLists.getNotType(list, "Creature").isEmpty()) {
                 list = ComputerUtilCard.prioritizeCreaturesWorthRemovingNow(ai, list, false);
+                CardCollection attackableCreatures = CardLists.filter(list, new Predicate<Card>() {
+                    @Override
+                    public boolean apply(final Card c) {
+                        return ComputerUtilCombat.canAttackNextTurn(c, ai);
+                    }
+                });
+                if (attackableCreatures.isEmpty()) {
+                    return false;
+                }
+                list = attackableCreatures;
             }
             if (!playReusable(ai, sa)) {
                 list = CardLists.filter(list, Predicates.not(CardPredicates.hasCounter(CounterEnumType.SHIELD, 1)));

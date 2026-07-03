@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import forge.ai.ComputerUtilCost;
 import forge.ai.SpellAbilityAi;
 import forge.game.ability.AbilityUtils;
+import forge.game.ability.ApiType;
 import forge.game.card.Card;
 import forge.game.player.Player;
 import forge.game.player.PlayerCollection;
@@ -98,6 +99,14 @@ public class AddTurnAi extends SpellAbilityAi {
                 && hasCastableBoardDevelopingCardInHand(aiPlayer, sa)) {
             return false;
         }
+        if (sa.isSpell() && sa.getActivatingPlayer() != null
+                && sa.getActivatingPlayer().equals(aiPlayer)
+                && aiPlayer.getCreaturesInPlay().isEmpty()
+                && !hasOpposingPlaneswalker(aiPlayer)
+                && countManaSources(aiPlayer) <= 3
+                && hasCastableCardDrawSpellInHand(aiPlayer, sa)) {
+            return false;
+        }
         return doTriggerAINoCost(aiPlayer, sa, false);
     }
 
@@ -105,6 +114,39 @@ public class AddTurnAi extends SpellAbilityAi {
         for (Player opp : ai.getOpponents()) {
             for (Card c : opp.getCardsIn(ZoneType.Battlefield)) {
                 if (c.isPlaneswalker()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static int countManaSources(final Player ai) {
+        int count = 0;
+        for (Card c : ai.getCardsIn(ZoneType.Battlefield)) {
+            if (!c.getManaAbilities().isEmpty()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean hasCastableCardDrawSpellInHand(final Player ai, final SpellAbility selfSa) {
+        final Card selfHost = selfSa != null ? selfSa.getHostCard() : null;
+        for (Card c : ai.getCardsIn(ZoneType.Hand)) {
+            if (c.equals(selfHost)) {
+                continue;
+            }
+            for (SpellAbility ability : c.getSpellAbilities()) {
+                if (!ability.isSpell() || ability.getApi() != ApiType.Draw) {
+                    continue;
+                }
+                ability.setActivatingPlayer(ai, true);
+                final String numCards = ability.getParam("NumCards");
+                if (numCards == null || AbilityUtils.calculateAmount(c, numCards, ability) < 2) {
+                    continue;
+                }
+                if (ComputerUtilCost.canPayCost(ability, ai, false)) {
                     return true;
                 }
             }

@@ -11,6 +11,7 @@ import forge.ai.ComputerUtil;
 import forge.ai.ComputerUtilAbility;
 import forge.ai.ComputerUtilCard;
 import forge.ai.ComputerUtilCost;
+import forge.ai.SpellApiToAi;
 import forge.ai.ability.ChangeZoneAi;
 import forge.ai.ability.LearnAi;
 import forge.ai.simulation.GameStateEvaluator.Score;
@@ -39,6 +40,7 @@ public class SpellAbilityPicker {
 
     private Plan plan;
     private int numSimulations;
+    private SpellAbility immediateFallback;
 
     public SpellAbilityPicker(Game game, Player player) {
         this.game = game;
@@ -110,8 +112,18 @@ public class SpellAbilityPicker {
         if (sa != null) {
             return sa;
         }
+        immediateFallback = null;
         createNewPlan(origGameScore, candidateSAs);
-        return getPlannedSpellAbility(origGameScore, candidateSAs);
+        sa = getPlannedSpellAbility(origGameScore, candidateSAs);
+        if (sa != null) {
+            return sa;
+        }
+        SpellAbility fallback = immediateFallback;
+        immediateFallback = null;
+        if (fallback != null && !SpellApiToAi.Converter.get(fallback.getApi()).canPlayAIWithSubs(player, fallback)) {
+            return null;
+        }
+        return fallback;
     }
 
     private Plan formulatePlanWithPhase(Score origGameScore, List<SpellAbility> candidateSAs, PhaseType phase) {
@@ -186,13 +198,25 @@ public class SpellAbilityPicker {
 
         SpellAbility bestSa = null;
         Score bestSaValue = origGameScore;
+        SpellAbility bestImmediateSa = null;
+        Score bestImmediateSaValue = new Score(Integer.MIN_VALUE);
         print("Evaluating... (orig score = " + origGameScore +  ")");
         for (int i = 0; i < candidateSAs.size(); i++) {
             Score value = evaluateSa(controller, phase, candidateSAs, i);
+            SpellAbility candidateSa = candidateSAs.get(i);
+            if (ComputerUtil.playImmediately(player, candidateSa) && value.value > bestImmediateSaValue.value) {
+                bestImmediateSaValue = value;
+                bestImmediateSa = candidateSa;
+            }
             if (value.value > bestSaValue.value) {
                 bestSaValue = value;
-                bestSa = candidateSAs.get(i);
+                bestSa = candidateSa;
             }
+        }
+
+        if (bestSa == null && bestImmediateSa != null) {
+            immediateFallback = bestImmediateSa;
+            return bestImmediateSa;
         }
 
         // To make the AI hold-off on playing creatures in MAIN1 if they give no other benefits,

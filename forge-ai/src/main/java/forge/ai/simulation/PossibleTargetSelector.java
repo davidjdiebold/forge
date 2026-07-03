@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.google.common.collect.ArrayListMultimap;
 
+import forge.ai.ability.DamageAiBase;
 import forge.ai.ComputerUtilCard;
 import forge.game.GameObject;
 import forge.game.ability.AbilityUtils;
@@ -70,10 +71,29 @@ public class PossibleTargetSelector {
 
         SimilarTargetSkipper skipper = new SimilarTargetSkipper();
         for (GameObject o : tgt.getAllCandidates(targetingSa, true)) {
+            if (shouldSkipPlayerBurnTarget(player, o)) {
+                continue;
+            }
             if (maxTargets == 1 && skipper.shouldSkipTarget(o)) {
                 continue;
             }
             validTargets.add(o);
+        }
+    }
+
+    private boolean shouldSkipPlayerBurnTarget(final Player player, final GameObject target) {
+        if (!(target instanceof Player)) {
+            return false;
+        }
+        final String numDmg = targetingSa.getParam("NumDmg");
+        if (numDmg == null || "X".equals(numDmg)) {
+            return false;
+        }
+        try {
+            final int dmg = AbilityUtils.calculateAmount(sa.getHostCard(), numDmg, targetingSa);
+            return DamageAiBase.shouldPreserveNonlethalBurnForRemoval(player, targetingSa, dmg, (Player) target);
+        } catch (Exception ex) {
+            return false;
         }
     }
 

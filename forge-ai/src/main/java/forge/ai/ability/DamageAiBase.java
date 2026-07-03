@@ -4,6 +4,8 @@ import forge.ai.ComputerUtil;
 import forge.ai.ComputerUtilCombat;
 import forge.ai.SpellAbilityAi;
 import forge.game.Game;
+import forge.game.ability.AbilityUtils;
+import forge.game.ability.ApiType;
 import forge.game.card.Card;
 import forge.game.card.CardCollectionView;
 import forge.game.keyword.Keyword;
@@ -11,6 +13,7 @@ import forge.game.phase.PhaseHandler;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.spellability.SpellAbility;
+import forge.game.spellability.TargetRestrictions;
 import forge.game.trigger.Trigger;
 import forge.game.trigger.TriggerType;
 import forge.game.zone.ZoneType;
@@ -121,6 +124,10 @@ public abstract class DamageAiBase extends SpellAbilityAi {
                 return true;
             }
 
+            if (shouldPreserveNonlethalBurnForRemoval(comp, sa, restDamage, enemy)) {
+                return false;
+            }
+
             // chance to burn player based on current hand size
             if (hand.size() > 2) {
                 float value = 0;
@@ -157,6 +164,68 @@ public abstract class DamageAiBase extends SpellAbilityAi {
             }
         }
 
+        return false;
+    }
+
+    public static boolean shouldPreserveNonlethalBurnForRemoval(final Player comp, final SpellAbility sa,
+            final int damage, final Player enemy) {
+        if (enemy == null || !enemy.isOpponentOf(comp)) {
+            return false;
+        }
+        final TargetRestrictions targetRestrictions = sa.getTargetRestrictions();
+        if (targetRestrictions == null || !targetRestrictions.canTgtPlayer()
+                || (!targetRestrictions.canTgtCreature() && !targetRestrictions.canTgtPlaneswalker())) {
+            return false;
+        }
+        if (damage <= 0 || enemy.getLife() <= Math.max(10, damage * 2)) {
+            return false;
+        }
+        final String numDmg = sa.getParam("NumDmg");
+        if (numDmg == null || "X".equals(numDmg)) {
+            return false;
+        }
+        return !hasBurnHeavyProfile(comp);
+    }
+
+    private static boolean hasBurnHeavyProfile(final Player comp) {
+        int nonLandCards = 0;
+        int faceBurnCards = 0;
+        for (Card c : comp.getAllCards()) {
+            if (c.isToken() || c.isLand()) {
+                continue;
+            }
+            nonLandCards++;
+            if (isFaceBurnCard(c)) {
+                faceBurnCards++;
+            }
+        }
+        if (faceBurnCards < 6) {
+            return false;
+        }
+        return nonLandCards > 0 && faceBurnCards * 5 >= nonLandCards;
+    }
+
+    private static boolean isFaceBurnCard(final Card c) {
+        for (SpellAbility ability : c.getSpellAbilities()) {
+            if (!ability.isSpell() || ability.getApi() != ApiType.DealDamage) {
+                continue;
+            }
+            final TargetRestrictions targetRestrictions = ability.getTargetRestrictions();
+            if (targetRestrictions == null || !targetRestrictions.canTgtPlayer()) {
+                continue;
+            }
+            final String numDmg = ability.getParam("NumDmg");
+            if (numDmg == null || "X".equals(numDmg)) {
+                continue;
+            }
+            try {
+                if (AbilityUtils.calculateAmount(c, numDmg, ability) > 0) {
+                    return true;
+                }
+            } catch (Exception ex) {
+                return false;
+            }
+        }
         return false;
     }
 

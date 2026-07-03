@@ -68,6 +68,27 @@ public class SpellAbilityPickerSimulationTest extends SimulationTest {
     }
 
     @Test
+    public void testPreservingFlexibleBurnInNonBurnDeck() {
+        Game game = initAndCreateGame();
+        Player p = game.getPlayers().get(1);
+
+        addCards("Island", 3, p);
+        addCardToZone("Psionic Blast", p, ZoneType.Hand);
+        for (int i = 0; i < 20; i++) {
+            addCardToZone("Counterspell", p, ZoneType.Hand);
+        }
+
+        Player opponent = game.getPlayers().get(0);
+        opponent.setLife(20, null);
+
+        game.getPhaseHandler().devModeSet(PhaseType.END_OF_TURN, opponent);
+        game.getAction().checkStateEffects(true);
+
+        SpellAbilityPicker picker = new SpellAbilityPicker(game, p);
+        AssertJUnit.assertNull(picker.chooseSpellAbilityToPlay(null));
+    }
+
+    @Test
     public void testSequenceStartingWithPlayingLand() {
         Game game = initAndCreateGame();
         Player p = game.getPlayers().get(1);

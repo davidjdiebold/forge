@@ -181,6 +181,22 @@ public class DamageDealAi extends DamageAiBase {
             if (n <= 0) {
                 return false;
             }
+            if (canUseTriskelionReanimationKill(ai, sa, n)) {
+                sa.resetTargets();
+                if (n == 1) {
+                    if (!sa.canTarget(source)) {
+                        return false;
+                    }
+                    sa.getTargets().add(source);
+                } else {
+                    Player enemy = ai.getWeakestOpponent();
+                    if (enemy == null || !sa.canTarget(enemy)) {
+                        return false;
+                    }
+                    sa.getTargets().add(enemy);
+                }
+                return true;
+            }
             // Triskelion is "about to die" if predictThreatenedObjects /
             // combat detection say so. Only then are we allowed to dump
             // remaining counters into the opponent's face for less than
@@ -324,6 +340,36 @@ public class DamageDealAi extends DamageAiBase {
         }
 
         return true;
+    }
+
+    private static boolean canUseTriskelionReanimationKill(final Player ai, final SpellAbility sa, final int counters) {
+        final Player enemy = ai.getWeakestOpponent();
+        if (enemy == null || !sa.canTarget(enemy) || !enemy.canLoseLife() || counters >= enemy.getLife()) {
+            return false;
+        }
+        final Card source = sa.getHostCard();
+        final int damageBeforeReanimation = Math.max(0, counters - 1);
+        final int damageAfterAnimateDead = 3;
+        if (enemy.getLife() > damageBeforeReanimation + damageAfterAnimateDead) {
+            return false;
+        }
+        if (counters == 1 && !sa.canTarget(source)) {
+            return false;
+        }
+        for (Card c : ai.getCardsIn(ZoneType.Hand)) {
+            if (!"Animate Dead".equals(c.getName())) {
+                continue;
+            }
+            SpellAbility animate = c.getFirstSpellAbility();
+            if (animate == null) {
+                continue;
+            }
+            animate.setActivatingPlayer(ai, true);
+            if (ComputerUtilMana.canPayManaCost(animate, ai, 0, false)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

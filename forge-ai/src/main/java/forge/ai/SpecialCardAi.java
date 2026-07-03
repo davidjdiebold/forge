@@ -126,6 +126,10 @@ public class SpecialCardAi {
     // Black Lotus and Lotus Bloom
     public static class BlackLotus {
         public static boolean consider(final Player ai, final SpellAbility sa, final ManaCostBeingPaid cost) {
+            if (isEarlyActivationEngine(ai, sa)) {
+                return false;
+            }
+
             CardCollection manaSources = ComputerUtilMana.getAvailableManaSources(ai, true);
             int numManaSrcs = manaSources.size();
 
@@ -198,6 +202,31 @@ public class SpecialCardAi {
             }
 
             return true;
+        }
+
+        private static boolean isEarlyActivationEngine(final Player ai, final SpellAbility sa) {
+            if (sa == null || sa.getHostCard() == null) {
+                return false;
+            }
+            if (!sa.getHostCard().isPermanent()) {
+                return false;
+            }
+            if (ai.getGame().getPhaseHandler().getTurn() > 1) {
+                return false;
+            }
+
+            for (SpellAbility ability : sa.getHostCard().getSpellAbilities()) {
+                if (!ability.isActivatedAbility() || ability.isManaAbility()) {
+                    continue;
+                }
+                if (ability.getPayCosts() == null || ability.getPayCosts().getTotalMana() == null) {
+                    continue;
+                }
+                if (ability.getPayCosts().getTotalMana().getCMC() >= 4) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 

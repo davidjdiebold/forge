@@ -1,9 +1,11 @@
 package forge.ai.ability;
 
 import forge.ai.simulation.SimulationTest;
+import forge.card.MagicColor;
 import forge.game.Game;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
+import forge.game.mana.Mana;
 import forge.game.player.Player;
 import forge.game.spellability.SpellAbility;
 import forge.game.zone.ZoneType;
@@ -75,6 +77,41 @@ public class TransmuteArtifactAiTest extends SimulationTest {
         Card sacrificeWithThreat = SacrificeAi.chooseTransmuteArtifactSacrifice(ai, transmute, new CardCollection(ornithopter));
         AssertJUnit.assertNotNull(sacrificeWithThreat);
         AssertJUnit.assertEquals("Ornithopter", sacrificeWithThreat.getName());
+    }
+
+    @Test
+    public void usesFloatingManaWhenChoosingTransmuteTarget() {
+        Game game = initAndCreateGame();
+        Player ai = game.getPlayers().get(1);
+        SpellAbility transmute = createTransmute(ai, 1);
+
+        Card source = addCard("Mox Sapphire", ai);
+        ai.getManaPool().addMana(new Mana(MagicColor.BLUE, source, null));
+        ai.getManaPool().addMana(new Mana(MagicColor.BLUE, source, null));
+        ai.getManaPool().addMana(new Mana(MagicColor.BLUE, source, null));
+
+        addCardToZone("Chaos Orb", ai, ZoneType.Library);
+
+        Card target = SacrificeAi.chooseTransmuteArtifactTarget(ai, transmute, ai.getCardsIn(ZoneType.Library));
+
+        AssertJUnit.assertNotNull(target);
+        AssertJUnit.assertEquals("Chaos Orb", target.getName());
+    }
+
+    @Test
+    public void doesNotSacrificeManaArtifactWithoutAffordableTarget() {
+        Game game = initAndCreateGame();
+        Player ai = game.getPlayers().get(1);
+        SpellAbility transmute = createTransmute(ai, 0);
+
+        addMana(ai, 2);
+        Card mox = addCard("Mox Sapphire", ai);
+        addCardToZone("Shivan Dragon", ai, ZoneType.Hand);
+        addCardToZone("Sol Ring", ai, ZoneType.Library);
+
+        Card sacrifice = SacrificeAi.chooseTransmuteArtifactSacrifice(ai, transmute, new CardCollection(mox));
+
+        AssertJUnit.assertNull(sacrifice);
     }
 
     private SpellAbility createTransmute(final Player ai, final int sackedCMC) {

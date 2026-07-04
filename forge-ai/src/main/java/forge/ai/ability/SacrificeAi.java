@@ -187,9 +187,8 @@ public class SacrificeAi extends SpellAbilityAi {
         Card bestSacrifice = null;
         Card bestTarget = null;
         int bestNetScore = 0;
-        final int leftover = getTransmuteLeftoverMana(ai);
-
         for (Card sacrifice : choices) {
+            final int leftover = getTransmuteLeftoverMana(ai, sacrifice);
             final Card target = chooseTransmuteArtifactTarget(ai, sa, ai.getCardsIn(ZoneType.Library), sacrifice.getCMC(), leftover);
             if (target == null) {
                 continue;
@@ -215,7 +214,7 @@ public class SacrificeAi extends SpellAbilityAi {
         if (sa.getHostCard().hasSVar("SackedCMC")) {
             sackedCMC = AbilityUtils.calculateAmount(sa.getHostCard(), sa.getHostCard().getSVar("SackedCMC"), sa);
         }
-        return chooseTransmuteArtifactTarget(ai, sa, fetchList, sackedCMC, getTransmuteLeftoverMana(ai));
+        return chooseTransmuteArtifactTarget(ai, sa, fetchList, sackedCMC, getTransmuteLeftoverMana(ai, null));
     }
 
     private static Card chooseTransmuteArtifactTarget(final Player ai, final SpellAbility sa, final CardCollectionView fetchList,
@@ -240,8 +239,13 @@ public class SacrificeAi extends SpellAbilityAi {
         return best;
     }
 
-    private static int getTransmuteLeftoverMana(final Player ai) {
-        return Math.max(0, ComputerUtilMana.getAvailableManaSources(ai, true).size() - 2);
+    private static int getTransmuteLeftoverMana(final Player ai, final Card sacrificed) {
+        final CardCollection manaSources = ComputerUtilMana.getAvailableManaSources(ai, true);
+        int available = manaSources.size() + ai.getManaPool().totalMana() - 2;
+        if (sacrificed != null && manaSources.contains(sacrificed)) {
+            available--;
+        }
+        return Math.max(0, available);
     }
 
     private static int scoreTransmuteArtifactTarget(final Player ai, final Card artifact, final int sackedCMC) {

@@ -9,6 +9,7 @@ import com.google.common.collect.ArrayListMultimap;
 import forge.ai.ability.DamageAiBase;
 import forge.ai.ComputerUtilCard;
 import forge.game.GameObject;
+import forge.game.ability.ApiType;
 import forge.game.ability.AbilityUtils;
 import forge.game.card.Card;
 import forge.game.combat.Combat;
@@ -79,6 +80,30 @@ public class PossibleTargetSelector {
             }
             validTargets.add(o);
         }
+        pruneHarmlessDestroyTargets(player);
+    }
+
+    private void pruneHarmlessDestroyTargets(final Player player) {
+        if (targetingSa == null || targetingSa.getApi() != ApiType.Destroy || maxTargets != 1) {
+            return;
+        }
+
+        boolean hasMeaningfulTarget = false;
+        for (GameObject o : validTargets) {
+            if (!(o instanceof Card)) {
+                hasMeaningfulTarget = true;
+                break;
+            }
+            if (!ComputerUtilCard.isPunisherCurrentlyHarmless((Card) o, player)) {
+                hasMeaningfulTarget = true;
+                break;
+            }
+        }
+        if (!hasMeaningfulTarget) {
+            validTargets.clear();
+            return;
+        }
+        validTargets.removeIf(o -> o instanceof Card && ComputerUtilCard.isPunisherCurrentlyHarmless((Card) o, player));
     }
 
     private boolean shouldSkipPlayerBurnTarget(final Player player, final GameObject target) {

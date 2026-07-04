@@ -1454,6 +1454,9 @@ public class ComputerUtilCard {
         if (c == null) {
             return false;
         }
+        if ("Mana Vault".equals(c.getName())) {
+            return true;
+        }
         if (c.isCreature() || c.isLand() || c.isPlaneswalker()) {
             return false;
         }

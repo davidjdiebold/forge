@@ -499,6 +499,10 @@ public class DestroyAi extends SpellAbilityAi {
         int numLandsInHand = CardLists.count(ai.getCardsIn(ZoneType.Hand), CardPredicates.Presets.LANDS_PRODUCING_MANA);
         int numLandsOTB = CardLists.count(ai.getCardsIn(ZoneType.Battlefield), CardPredicates.Presets.LANDS_PRODUCING_MANA);
 
+        if (shouldPreserveLandForLandAgainstCreaturePressure(ai, tgtPlayer, numLandsOTB, oppLandsOTB)) {
+            return false;
+        }
+
         // If the opponent skipped a land drop, consider not looking at having the extra land in hand if the profile allows it
         boolean isHighPriority = highPriorityIfNoLandDrop && oppSkippedLandDrop;
 
@@ -513,6 +517,29 @@ public class DestroyAi extends SpellAbilityAi {
         } else {
             return tempoCheck;
         }
+    }
+
+    public static boolean shouldPreserveLandForLandAgainstCreaturePressure(final Player ai, final Player opponent) {
+        final int numLandsOTB = CardLists.count(ai.getCardsIn(ZoneType.Battlefield), CardPredicates.Presets.LANDS_PRODUCING_MANA);
+        final int oppLandsOTB = opponent.getLandsInPlay().size();
+        return shouldPreserveLandForLandAgainstCreaturePressure(ai, opponent, numLandsOTB, oppLandsOTB);
+    }
+
+    private static boolean shouldPreserveLandForLandAgainstCreaturePressure(final Player ai, final Player opponent,
+            final int numLandsOTB, final int oppLandsOTB) {
+        return numLandsOTB <= oppLandsOTB && hasBigCreatureThreat(opponent, ai);
+    }
+
+    private static boolean hasBigCreatureThreat(final Player opponent, final Player ai) {
+        for (final Card c : opponent.getCreaturesInPlay()) {
+            if (!ComputerUtilCombat.canAttackNextTurn(c, ai)) {
+                continue;
+            }
+            if (c.getNetPower() >= 4 || ComputerUtilCard.evaluateCreature(c) >= 200) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

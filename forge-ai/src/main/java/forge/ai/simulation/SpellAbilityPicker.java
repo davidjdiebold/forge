@@ -13,6 +13,7 @@ import forge.ai.ComputerUtilCard;
 import forge.ai.ComputerUtilCost;
 import forge.ai.SpellApiToAi;
 import forge.ai.ability.ChangeZoneAi;
+import forge.ai.ability.DestroyAi;
 import forge.ai.ability.LearnAi;
 import forge.ai.simulation.GameStateEvaluator.Score;
 import forge.game.Game;
@@ -373,6 +374,16 @@ public class SpellAbilityPicker {
         }
         if (!ComputerUtilAbility.isFullyTargetable(sa)) {
             return AiPlayDecision.TargetingFailed;
+        }
+        if (sa.getApi() == ApiType.Destroy && sa.hasParam("AILogic")) {
+            final String aiLogic = sa.getParam("AILogic");
+            if ("LandForLand".equals(aiLogic) || "GhostQuarter".equals(aiLogic)) {
+                for (Player opponent : player.getOpponents()) {
+                    if (DestroyAi.shouldPreserveLandForLandAgainstCreaturePressure(player, opponent)) {
+                        return AiPlayDecision.CantPlaySa;
+                    }
+                }
+            }
         }
         if (shouldWaitForLater(sa)) {
             return AiPlayDecision.AnotherTime;

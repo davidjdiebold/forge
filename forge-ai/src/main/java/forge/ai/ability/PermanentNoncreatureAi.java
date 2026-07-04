@@ -54,6 +54,10 @@ public class PermanentNoncreatureAi extends PermanentAi {
         final String sourceName = ComputerUtilAbility.getAbilitySourceName(sa);
         final Game game = ai.getGame();
 
+        if ("The Abyss".equals(sourceName) && shouldAvoidCastingTheAbyss(ai)) {
+            return false;
+        }
+
         // Check for valid targets before casting
         if (host.hasSVar("OblivionRing")) {
             SpellAbility effectExile = AbilityFactory.getAbility(host.getSVar("TrigExile"), host);
@@ -68,6 +72,28 @@ public class PermanentNoncreatureAi extends PermanentAi {
             }
             // AiPlayDecision.AnotherTime
             return !targets.isEmpty();
+        }
+        return true;
+    }
+
+    private static boolean shouldAvoidCastingTheAbyss(final Player ai) {
+        boolean aiHasVulnerableCreature = false;
+        for (Card c : ai.getCreaturesInPlay()) {
+            if (!c.isArtifact()) {
+                aiHasVulnerableCreature = true;
+                break;
+            }
+        }
+        if (!aiHasVulnerableCreature) {
+            return false;
+        }
+
+        for (Player opp : ai.getOpponents()) {
+            for (Card c : opp.getCreaturesInPlay()) {
+                if (!c.isArtifact()) {
+                    return false;
+                }
+            }
         }
         return true;
     }

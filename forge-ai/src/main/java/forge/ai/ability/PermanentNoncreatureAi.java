@@ -2,6 +2,8 @@ package forge.ai.ability;
 
 import forge.ai.ComputerUtilAbility;
 import forge.ai.ComputerUtilCard;
+import forge.ai.ComputerUtilMana;
+import forge.game.keyword.Keyword;
 import forge.game.Game;
 import forge.game.ability.AbilityFactory;
 import forge.game.card.Card;
@@ -54,6 +56,10 @@ public class PermanentNoncreatureAi extends PermanentAi {
         final String sourceName = ComputerUtilAbility.getAbilitySourceName(sa);
         final Game game = ai.getGame();
 
+        if ("Mana Vault".equals(sourceName) && shouldHoldManaVault(ai, sa)) {
+            return false;
+        }
+
         if ("The Abyss".equals(sourceName) && shouldAvoidCastingTheAbyss(ai)) {
             return false;
         }
@@ -74,6 +80,65 @@ public class PermanentNoncreatureAi extends PermanentAi {
             return !targets.isEmpty();
         }
         return true;
+    }
+
+    private static boolean shouldHoldManaVault(final Player ai, final SpellAbility sa) {
+        final int availableMana = ComputerUtilMana.getAvailableManaSources(ai, true).size();
+        final int manaAfterVault = availableMana + 2;
+        boolean unlocksDefensivePayoff = false;
+
+        for (Card handCard : ai.getCardsIn(ZoneType.Hand)) {
+            if (handCard.equals(sa.getHostCard()) || handCard.isLand()) {
+                continue;
+            }
+            final SpellAbility cast = handCard.getFirstSpellAbility();
+            if (cast == null || cast.getPayCosts() == null || cast.getPayCosts().getTotalMana() == null) {
+                continue;
+            }
+
+            final int cmc = cast.getPayCosts().getTotalMana().getCMC();
+            if (cmc <= availableMana || cmc > manaAfterVault) {
+                continue;
+            }
+
+            if (isManaVaultThreatPayoff(handCard)) {
+                return false;
+            }
+            if (isManaVaultDefensivePayoff(handCard)) {
+                unlocksDefensivePayoff = true;
+            }
+        }
+
+        return !unlocksDefensivePayoff || !isUnderDangerousCreaturePressure(ai);
+    }
+
+    private static boolean isManaVaultThreatPayoff(final Card card) {
+        return card.isCreature() || card.isPlaneswalker();
+    }
+
+    private static boolean isManaVaultDefensivePayoff(final Card card) {
+        final String name = card.getName();
+        return "The Abyss".equals(name) || "Icy Manipulator".equals(name);
+    }
+
+    private static boolean isUnderDangerousCreaturePressure(final Player ai) {
+        for (Player opp : ai.getOpponents()) {
+            for (Card c : opp.getCreaturesInPlay()) {
+                final int power = c.getNetPower();
+                final boolean evasion = c.hasKeyword(Keyword.FLYING)
+                        || c.hasKeyword(Keyword.SHADOW)
+                        || c.hasKeyword(Keyword.FEAR)
+                        || c.hasKeyword(Keyword.HORSEMANSHIP)
+                        || c.hasKeyword(Keyword.SKULK)
+                        || c.hasKeyword(Keyword.INTIMIDATE)
+                        || c.hasKeyword(Keyword.TRAMPLE)
+                        || c.hasKeyword(Keyword.MENACE);
+                if (power >= 4 || (power >= 3 && evasion)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static boolean shouldAvoidCastingTheAbyss(final Player ai) {

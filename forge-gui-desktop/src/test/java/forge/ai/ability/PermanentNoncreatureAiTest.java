@@ -41,4 +41,51 @@ public class PermanentNoncreatureAiTest extends SimulationTest {
 
         AssertJUnit.assertTrue(new PermanentNoncreatureAi().checkApiLogic(ai, cast));
     }
+
+    @Test
+    public void doesNotCastManaVaultToAccelerateTheAbyssWithoutPressure() {
+        Game game = initAndCreateGame();
+        Player ai = game.getPlayers().get(1);
+
+        addCards("Swamp", 2, ai);
+        Card manaVault = addCardToZone("Mana Vault", ai, ZoneType.Hand);
+        addCardToZone("The Abyss", ai, ZoneType.Hand);
+
+        SpellAbility cast = manaVault.getFirstSpellAbility();
+        cast.setActivatingPlayer(ai, true);
+
+        AssertJUnit.assertFalse(new PermanentNoncreatureAi().checkApiLogic(ai, cast));
+    }
+
+    @Test
+    public void castsManaVaultToAccelerateThreat() {
+        Game game = initAndCreateGame();
+        Player ai = game.getPlayers().get(1);
+
+        addCards("Swamp", 3, ai);
+        Card manaVault = addCardToZone("Mana Vault", ai, ZoneType.Hand);
+        addCardToZone("Sengir Vampire", ai, ZoneType.Hand);
+
+        SpellAbility cast = manaVault.getFirstSpellAbility();
+        cast.setActivatingPlayer(ai, true);
+
+        AssertJUnit.assertTrue(new PermanentNoncreatureAi().checkApiLogic(ai, cast));
+    }
+
+    @Test
+    public void castsManaVaultToAccelerateTheAbyssUnderPressure() {
+        Game game = initAndCreateGame();
+        Player opponent = game.getPlayers().get(0);
+        Player ai = game.getPlayers().get(1);
+
+        addCards("Swamp", 2, ai);
+        Card manaVault = addCardToZone("Mana Vault", ai, ZoneType.Hand);
+        addCardToZone("The Abyss", ai, ZoneType.Hand);
+        addCard("Serra Angel", opponent);
+
+        SpellAbility cast = manaVault.getFirstSpellAbility();
+        cast.setActivatingPlayer(ai, true);
+
+        AssertJUnit.assertTrue(new PermanentNoncreatureAi().checkApiLogic(ai, cast));
+    }
 }

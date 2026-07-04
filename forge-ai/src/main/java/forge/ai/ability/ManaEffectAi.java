@@ -1,5 +1,6 @@
 package forge.ai.ability;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -13,6 +14,7 @@ import forge.card.mana.ManaAtom;
 import forge.card.mana.ManaCost;
 import forge.game.CardTraitPredicates;
 import forge.game.ability.AbilityUtils;
+import forge.game.ability.ApiType;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
 import forge.game.card.CardLists;
@@ -192,6 +194,7 @@ public class ManaEffectAi extends SpellAbilityAi {
         String restrictValid = sa.getParamOrDefault("RestrictValid", "Card");
 
         CardCollection cardList = new CardCollection();
+        List<SpellAbility> ritualPayoffs = new ArrayList<>();
         // TODO check other zones
         List<SpellAbility> all = ComputerUtilAbility.getSpellAbilities(ai.getCardsIn(ZoneType.Hand), ai);
         for (final SpellAbility testSa : ComputerUtilAbility.getOriginalAndAltCostAbilities(all, ai)) {
@@ -238,6 +241,7 @@ public class ManaEffectAi extends SpellAbilityAi {
                 if (!cardList.contains(testSa.getHostCard())) {
                     cardList.add(testSa.getHostCard());
                 }
+                ritualPayoffs.add(testSa);
             }
         }
 
@@ -262,6 +266,9 @@ public class ManaEffectAi extends SpellAbilityAi {
                 }
             }
             if (!ritualNeeded) {
+                ritualNeeded = improvesXDrawSpell(ai, ritualPayoffs, castableSpells, manaReceived - selfCost);
+            }
+            if (!ritualNeeded) {
                 return false;
             }
         }
@@ -275,6 +282,57 @@ public class ManaEffectAi extends SpellAbilityAi {
 
         // TODO: this will probably still waste the card from time to time. Somehow improve detection of castable material.
         return castableSpells.size() > 0;
+    }
+
+    private static boolean improvesXDrawSpell(final Player ai, final List<SpellAbility> payoffs,
+            final CardCollection castableSpells, final int extraMana) {
+        if (extraMana <= 0) {
+            return false;
+        }
+        for (SpellAbility payoff : payoffs) {
+            if (payoff.getApi() != ApiType.Draw || !castableSpells.contains(payoff.getHostCard())) {
+                continue;
+            }
+            if (!"X".equals(payoff.getParam("NumCards")) || !"Count$xPaid".equals(payoff.getSVar("X"))) {
+                continue;
+            }
+
+            final int currentX = getSafeSelfDrawX(ai, payoff, 0);
+            final int boostedX = getSafeSelfDrawX(ai, payoff, extraMana);
+            if (boostedX >= 2 && boostedX > currentX) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int getSafeSelfDrawX(final Player ai, final SpellAbility sa, final int extraMana) {
+        final SpellAbility testSa = sa.copy();
+        testSa.setActivatingPlayer(ai, true);
+
+        int maxX = ComputerUtilCost.getMaxXValue(testSa, ai, false);
+        maxX += extraMana;
+
+        int affordableX = 0;
+        for (int x = maxX; x >= 1; x--) {
+            testSa.setXManaCostPaid(x);
+            testSa.getRootAbility().setXManaCostPaid(x);
+            if (ComputerUtilMana.canPayManaCost(testSa, ai, extraMana, false)) {
+                affordableX = x;
+                break;
+            }
+        }
+
+        int handSize = ai.getCardsIn(ZoneType.Hand).size();
+        if (testSa.isSpell() && testSa.getHostCard().isInZone(ZoneType.Hand)) {
+            handSize--;
+        }
+
+        int safeDraw = Math.abs(Math.min(ai.getMaxHandSize() - handSize, ai.getCardsIn(ZoneType.Library).size() - 3));
+        if (testSa.getHostCard().isInstant() || testSa.getHostCard().isSorcery()) {
+            safeDraw++;
+        }
+        return Math.max(0, Math.min(affordableX, safeDraw));
     }
 
     private boolean improvesPosition(Player ai, SpellAbility sa) {

@@ -270,6 +270,10 @@ public class PermanentCreatureAi extends PermanentAi {
      * nonartifact creature controlled by the active player) is on the
      * battlefield, hold non-artifact creatures unless we can swarm.
      */
+    public static boolean shouldDeferUnderAbyss(final Player ai, final SpellAbility sa) {
+        return shouldDeferUnderAbyss(ai, sa, CardUtil.getLKICopy(sa.getHostCard()));
+    }
+
     private static boolean shouldDeferUnderAbyss(final Player ai, final SpellAbility sa, final Card creatureLKI) {
         // Artifact creatures and creatures with protection from black are
         // immune to The Abyss (a black enchantment whose ability "targets"

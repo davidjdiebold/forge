@@ -252,6 +252,12 @@ public class PermanentCreatureAi extends PermanentAi {
             if (shouldDeferCreatureToHandleThreat(ai, sa, copy)) {
                 return false;
             }
+            // When life is low, prefer spending this turn removing the
+            // immediate attacker instead of deploying a creature that only
+            // might stabilize later.
+            if (shouldDeferForLifeSavingRemoval(ai, sa, copy)) {
+                return false;
+            }
             // Don't drop creatures that can be repeatedly pinged off by an
             // opposing source (e.g. Prodigal Sorcerer, Triskelion, Pestilence)
             // unless the creature provides meaningful value on entry / cannot
@@ -263,6 +269,42 @@ public class PermanentCreatureAi extends PermanentAi {
         }
 
         return false;
+    }
+
+    private static boolean shouldDeferForLifeSavingRemoval(final Player ai, final SpellAbility currentSa, final Card creatureLKI) {
+        if (creatureLKI.hasETBTrigger(true) || creatureLKI.hasETBReplacement()) {
+            return false;
+        }
+        if (ai.getLife() > 8 && !ComputerUtil.aiLifeInDanger(ai, true, 0)) {
+            return false;
+        }
+
+        for (Player opp : ai.getOpponents()) {
+            for (Card threat : opp.getCreaturesInPlay()) {
+                if (!isImmediateLifeThreat(ai, threat)) {
+                    continue;
+                }
+                if (hasRemovalSpellInHandFor(ai, currentSa, threat)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isImmediateLifeThreat(final Player ai, final Card threat) {
+        final int power = threat.getNetPower();
+        final boolean evasive = threat.hasKeyword(Keyword.FLYING)
+                || threat.hasKeyword(Keyword.SHADOW)
+                || threat.hasKeyword(Keyword.FEAR)
+                || threat.hasKeyword(Keyword.HORSEMANSHIP)
+                || threat.hasKeyword(Keyword.SKULK)
+                || threat.hasKeyword(Keyword.INTIMIDATE)
+                || threat.hasKeyword(Keyword.TRAMPLE)
+                || threat.hasKeyword(Keyword.MENACE);
+        return power >= ai.getLife() / 2
+                || power >= ai.getLife() - 2
+                || (power >= 3 && evasive);
     }
 
     /**
@@ -517,21 +559,27 @@ public class PermanentCreatureAi extends PermanentAi {
                 continue;
             }
             for (SpellAbility ab : c.getSpellAbilities()) {
-                if (!ab.isSpell() || ab.getApi() != ApiType.DealDamage) {
-                    continue;
-                }
-                String numDmg = ab.getParam("NumDmg");
-                if (numDmg == null) {
-                    continue;
-                }
-                int abDmg = numDmg.equals("X")
-                        ? ComputerUtilCost.getMaxXValue(ab, ai, false)
-                        : AbilityUtils.calculateAmount(c, numDmg, ab);
-                if (abDmg < threatToughness) {
+                if (!ab.isSpell()) {
                     continue;
                 }
                 ab.setActivatingPlayer(ai, true);
-                if (ComputerUtilCost.canPayCost(ab, ai, false)) {
+                if (!ComputerUtilCost.canPayCost(ab, ai, false)) {
+                    continue;
+                }
+                if (ab.getApi() == ApiType.DealDamage) {
+                    String numDmg = ab.getParam("NumDmg");
+                    if (numDmg == null) {
+                        continue;
+                    }
+                    int abDmg = numDmg.equals("X")
+                            ? ComputerUtilCost.getMaxXValue(ab, ai, false)
+                            : AbilityUtils.calculateAmount(c, numDmg, ab);
+                    if (abDmg < threatToughness) {
+                        continue;
+                    }
+                    return true;
+                }
+                if (ab.getApi() == ApiType.Destroy || ab.getApi() == ApiType.ChangeZone) {
                     return true;
                 }
             }

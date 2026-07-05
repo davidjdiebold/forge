@@ -4,6 +4,9 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 import forge.game.Game;
+import forge.game.card.Card;
+import forge.game.card.CardCollection;
+import forge.game.card.CardCollectionView;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.spellability.SpellAbility;
@@ -29,5 +32,24 @@ public class SylvanLibrarySimulationTest extends SimulationTest {
         SpellAbility sa = picker.chooseSpellAbilityToPlay(null);
         AssertJUnit.assertNotNull(sa);
         AssertJUnit.assertEquals("Sylvan Library", sa.getHostCard().getName());
+    }
+
+    @Test
+    public void keepsForestAbovePlainsWhenHandNeedsDoubleGreen() {
+        Game game = initAndCreateGame();
+        Player ai = game.getPlayers().get(1);
+
+        addCard("Forest", ai);
+        addCardToZone("Trained Armodon", ai, ZoneType.Hand);
+
+        Card plains = createCard("Plains", ai);
+        Card forest = createCard("Forest", ai);
+        CardCollection choices = new CardCollection();
+        choices.add(plains);
+        choices.add(forest);
+        CardCollectionView reordered = ai.getController().orderMoveToZoneList(choices, ZoneType.Library, null);
+
+        AssertJUnit.assertEquals("Forest", reordered.get(0).getName());
+        AssertJUnit.assertEquals("Plains", reordered.get(1).getName());
     }
 }

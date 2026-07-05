@@ -461,6 +461,7 @@ public class PlayerControllerAi extends PlayerController {
             }
 
             int landsOTB = CardLists.count(p.getCardsIn(ZoneType.Battlefield), CardPredicates.Presets.LANDS_PRODUCING_MANA);
+            sortTopLibraryLandsByManaNeeds(p, topLands);
 
             if (!p.isOpponentOf(player)) {
                 if (landsOTB <= 2) {
@@ -500,6 +501,106 @@ public class PlayerControllerAi extends PlayerController {
 
         // Default: return with the same order as was passed into this method
         return cards;
+    }
+
+    private static void sortTopLibraryLandsByManaNeeds(final Player player, final CardCollection topLands) {
+        if (topLands.size() < 2) {
+            return;
+        }
+        topLands.sort((left, right) -> Integer.compare(scoreTopLibraryLand(player, right), scoreTopLibraryLand(player, left)));
+    }
+
+    private static int scoreTopLibraryLand(final Player player, final Card land) {
+        if (land == null) {
+            return 0;
+        }
+
+        int score = 0;
+        final Map<Byte, Integer> availableByColor = countManaSourcesByColor(player);
+        final int manaSourcesNextTurn = countManaSources(player) + 1;
+
+        for (Card handCard : player.getCardsIn(ZoneType.Hand)) {
+            if (handCard.isLand()) {
+                continue;
+            }
+            final ManaCost cost = handCard.getManaCost();
+            if (cost == null) {
+                continue;
+            }
+            final int cmc = cost.getCMC();
+            if (cmc <= 0 || cmc > manaSourcesNextTurn + 1) {
+                continue;
+            }
+
+            final int urgency = Math.max(1, 6 - Math.min(cmc, 5));
+            for (byte color : MagicColor.WUBRG) {
+                final int required = getRequiredShardCount(cost, color);
+                if (required <= 0 || !canProduceColor(land, color)) {
+                    continue;
+                }
+
+                final int deficit = required - availableByColor.getOrDefault(color, 0);
+                if (deficit > 0) {
+                    score += deficit * urgency * 10;
+                }
+            }
+        }
+
+        return score;
+    }
+
+    private static int countManaSources(final Player player) {
+        int count = 0;
+        for (Card c : player.getCardsIn(ZoneType.Battlefield)) {
+            if (!ComputerUtilMana.getAIPlayableMana(c).isEmpty()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static Map<Byte, Integer> countManaSourcesByColor(final Player player) {
+        final Map<Byte, Integer> counts = new HashMap<>();
+        for (byte color : MagicColor.WUBRG) {
+            counts.put(color, 0);
+        }
+
+        for (Card c : player.getCardsIn(ZoneType.Battlefield)) {
+            for (byte color : MagicColor.WUBRG) {
+                if (canProduceColor(c, color)) {
+                    counts.put(color, counts.get(color) + 1);
+                }
+            }
+        }
+        return counts;
+    }
+
+    private static boolean canProduceColor(final Card card, final byte color) {
+        final String shortColor = MagicColor.toShortString(color);
+        for (SpellAbility mana : ComputerUtilMana.getAIPlayableMana(card)) {
+            mana.setActivatingPlayer(card.getController(), true);
+            if (mana.canProduce(shortColor)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int getRequiredShardCount(final ManaCost cost, final byte color) {
+        switch (color) {
+        case MagicColor.WHITE:
+            return cost.getShardCount(ManaCostShard.WHITE);
+        case MagicColor.BLUE:
+            return cost.getShardCount(ManaCostShard.BLUE);
+        case MagicColor.BLACK:
+            return cost.getShardCount(ManaCostShard.BLACK);
+        case MagicColor.RED:
+            return cost.getShardCount(ManaCostShard.RED);
+        case MagicColor.GREEN:
+            return cost.getShardCount(ManaCostShard.GREEN);
+        default:
+            return 0;
+        }
     }
 
     @Override
